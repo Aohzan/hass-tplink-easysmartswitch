@@ -13,6 +13,27 @@ Copy the `custom_components/tplink_easysmartswitch` folder into the config folde
 
 Go to Configuration >> Integrations in the UI, click the button with + sign and from the list of integrations select TP-Link Easy Smart Switch.
 
+## Lovelace Card example
+
+With `multiple-entity-row` custom card:
+
+```yaml
+entities:
+  - entities:
+      - entity: sensor.port_01_ingress
+        name: Down
+      - entity: sensor.port_01_egress
+        name: Up
+      - attribute: link_status
+        name: Status
+    entity: binary_sensor.port_01
+    type: custom:multiple-entity-row
+type: entities
+
+```
+
+![Card example](lovelave-card-example.jpg)
+
 ## Credits
 
 https://github.com/psmode/essstat

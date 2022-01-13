@@ -6,7 +6,7 @@ COORDINATOR = "coordinator"
 PLATFORMS = ["binary_sensor", "sensor"]
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 
-DEFAULT_SCAN_INTERVAL = 10
+DEFAULT_SCAN_INTERVAL = 30
 
 TIMESTAMP = "timestamp"
 

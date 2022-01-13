@@ -79,6 +79,11 @@ class TpLinkSwitchBinarySensor(CoordinatorEntity, BinarySensorEntity):
         )
 
     @property
+    def icon(self):
+        """Return the port icon."""
+        return "mdi:lan-connect" if self.is_on else "mdi:lan-disconnect"
+
+    @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         if self.coordinator.data:

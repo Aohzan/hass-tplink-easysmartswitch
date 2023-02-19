@@ -1,16 +1,15 @@
 """Support for the TP-Link Easy Smart Switch."""
+from collections.abc import Mapping
 import logging
 from typing import Any
-from collections.abc import Mapping
-from homeassistant.components.binary_sensor import (
-    BinarySensorEntity,
-)
+
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
-from .tplink import EasySwitch
+
 from .const import (
     CONTROLLER,
     COORDINATOR,
@@ -22,6 +21,7 @@ from .const import (
     TPLINK_PORT_TX_BAD_PKT,
     TPLINK_PORT_TX_GOOD_PKT,
 )
+from .tplink import EasySwitch
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -106,3 +106,4 @@ class TpLinkSwitchBinarySensor(CoordinatorEntity, BinarySensorEntity):
                     TPLINK_PORT_RX_BAD_PKT
                 ],
             }
+        return None

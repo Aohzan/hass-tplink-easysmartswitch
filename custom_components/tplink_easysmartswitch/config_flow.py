@@ -2,11 +2,11 @@
 import voluptuous as vol
 
 from homeassistant.config_entries import (
-    ConfigFlow,
     CONN_CLASS_LOCAL_POLL,
     HANDLERS,
-    OptionsFlow,
     ConfigEntry,
+    ConfigFlow,
+    OptionsFlow,
 )
 from homeassistant.const import (
     CONF_HOST,
@@ -44,7 +44,7 @@ class TpLinkSwitchConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         """Handle a flow initialized by the user."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is None:
             return self.async_show_form(
                 step_id="user", data_schema=BASE_SCHEMA, errors=errors
@@ -97,7 +97,7 @@ class TpLinkSwitchOptionsFlowHandler(OptionsFlow):
 
     async def async_step_init(self, user_input) -> FlowResult:
         """Manage the options."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is None:
             config = self.config_entry.data
             options = self.config_entry.options

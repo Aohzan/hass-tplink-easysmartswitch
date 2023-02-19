@@ -1,7 +1,13 @@
 """Config flow to configure the TP-Link Easy Smart Switch integration."""
 import voluptuous as vol
 
-from homeassistant import config_entries
+from homeassistant.config_entries import (
+    ConfigFlow,
+    CONN_CLASS_LOCAL_POLL,
+    HANDLERS,
+    OptionsFlow,
+    ConfigEntry,
+)
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
@@ -9,6 +15,7 @@ from homeassistant.const import (
     CONF_USERNAME,
 )
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
@@ -20,22 +27,22 @@ from .tplink import (
 
 BASE_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_HOST): str,
+        vol.Required(CONF_HOST, default="192.168.1.254"): str,
         vol.Optional(CONF_USERNAME, default="admin"): str,
-        vol.Optional(CONF_PASSWORD): str,
+        vol.Optional(CONF_PASSWORD, default="yrPeNK89wqA14"): str,
         vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
     }
 )
 
 
-@config_entries.HANDLERS.register(DOMAIN)
-class TpLinkSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+@HANDLERS.register(DOMAIN)
+class TpLinkSwitchConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a TP-Link Easy Smart Switch config flow."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+    CONNECTION_CLASS = CONN_CLASS_LOCAL_POLL
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input=None) -> FlowResult:
         """Handle a flow initialized by the user."""
         errors = {}
         if user_input is None:
@@ -76,19 +83,19 @@ class TpLinkSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Define the config flow to handle options."""
         return TpLinkSwitchOptionsFlowHandler(config_entry)
 
 
-class TpLinkSwitchOptionsFlowHandler(config_entries.OptionsFlow):
+class TpLinkSwitchOptionsFlowHandler(OptionsFlow):
     """Handle a TpLinkSwitch options flow."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize."""
         self.config_entry = config_entry
 
-    async def async_step_init(self, user_input):
+    async def async_step_init(self, user_input) -> FlowResult:
         """Manage the options."""
         errors = {}
         if user_input is None:

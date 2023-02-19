@@ -2,8 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "TP-Link Easy Smart Switch",
-        "description": "Set connexion settings",
+        "description": "Set connexion settings.",
         "data": {
           "host": "[%key:common::config_flow::data::host%]",
           "scan_interval": "Seconds between updates",
@@ -24,7 +23,6 @@
   "options": {
     "step": {
       "init": {
-        "title": "TP-Link Easy Smart Switch",
         "description": "Update settings",
         "data": {
           "host": "[%key:common::config_flow::data::host%]",

@@ -2,6 +2,9 @@
 import logging
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
@@ -18,9 +21,11 @@ from .tplink import EasySwitch
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Set up the TP-Link Easy Smart Switch platform."""
-    data = hass.data[DOMAIN][config_entry.entry_id]
+    data = hass.data[DOMAIN][entry.entry_id]
     controller: EasySwitch = data[CONTROLLER]
     coordinator = data[COORDINATOR]
 
@@ -56,7 +61,7 @@ class TpLinkSpeedSensor(CoordinatorEntity, SensorEntity):
         coordinator,
         port_number,
         attribute,
-    ):
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._last_value = None
@@ -92,7 +97,7 @@ class TpLinkSpeedSensor(CoordinatorEntity, SensorEntity):
         return current_value < self._last_value
 
     @property
-    def native_value(self):
+    def native_value(self) -> float | None:
         """Return the state."""
         current_value = int(self.coordinator.data[self._port_number][self._attribute])
         if current_value is None:

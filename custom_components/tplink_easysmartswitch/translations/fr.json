@@ -1,0 +1,41 @@
+{
+  "config": {
+      "abort": {
+          "already_configured": "Appareil déjà configuré"
+      },
+      "error": {
+          "cannot_connect": "Impossible de se connecter",
+          "invalid_auth": "Authentification invalide",
+          "unknown": "Erreur inconnue"
+      },
+      "step": {
+          "user": {
+              "data": {
+                  "host": "Host",
+                  "password": "Mot de passe",
+                  "scan_interval": "Secondes entre mises à jour",
+                  "username": "Nom d'utilisateur"
+              },
+              "description": "Paramètres de connexion."
+          }
+      }
+  },
+  "options": {
+      "error": {
+        "cannot_connect": "Impossible de se connecter",
+        "invalid_auth": "Authentification invalide",
+        "unknown": "Erreur inconnue"
+      },
+      "step": {
+          "init": {
+              "data": {
+                  "host": "Host",
+                  "password": "Mot de passe",
+                  "scan_interval": "Secondes entre mises à jour",
+                  "username": "Nom d'utilisateur"
+              },
+              "description": "Mise à jour des paramètres de connexion."
+          }
+      }
+  }
+}

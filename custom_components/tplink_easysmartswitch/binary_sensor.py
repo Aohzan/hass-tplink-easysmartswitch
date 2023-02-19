@@ -1,9 +1,13 @@
 """Support for the TP-Link Easy Smart Switch."""
 import logging
-
+from typing import Any
+from collections.abc import Mapping
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 from .tplink import EasySwitch
@@ -22,9 +26,11 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Set up the TP-Link Easy Smart binary sensor platform."""
-    data = hass.data[DOMAIN][config_entry.entry_id]
+    data = hass.data[DOMAIN][entry.entry_id]
     controller: EasySwitch = data[CONTROLLER]
     coordinator = data[COORDINATOR]
 
@@ -46,7 +52,7 @@ class TpLinkSwitchBinarySensor(CoordinatorEntity, BinarySensorEntity):
         controller,
         coordinator,
         port_number,
-    ):
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.controller = controller
@@ -70,7 +76,7 @@ class TpLinkSwitchBinarySensor(CoordinatorEntity, BinarySensorEntity):
         }
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool | None:
         """Return the state."""
         return (
             self.coordinator.data[self._port_number][TPLINK_PORT_STATE] == "Enabled"
@@ -79,12 +85,7 @@ class TpLinkSwitchBinarySensor(CoordinatorEntity, BinarySensorEntity):
         )
 
     @property
-    def icon(self):
-        """Return the port icon."""
-        return "mdi:lan-connect" if self.is_on else "mdi:lan-disconnect"
-
-    @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Return the state attributes."""
         if self.coordinator.data:
             return {

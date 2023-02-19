@@ -27,9 +27,9 @@ from .tplink import (
 
 BASE_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_HOST, default="192.168.1.254"): str,
+        vol.Required(CONF_HOST): str,
         vol.Optional(CONF_USERNAME, default="admin"): str,
-        vol.Optional(CONF_PASSWORD, default="yrPeNK89wqA14"): str,
+        vol.Optional(CONF_PASSWORD): str,
         vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
     }
 )

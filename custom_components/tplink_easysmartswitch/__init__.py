@@ -12,8 +12,9 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -91,18 +92,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         UNDO_UPDATE_LISTENER: undo_listener,
     }
 
-    device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
-        config_entry_id=entry.entry_id,
-        identifiers={(DOMAIN, controller.mac_address)},
-        manufacturer="TP-Link",
-        model=controller.hardware_version,
-        default_name=f"Switch {controller.host}",
-        sw_version=controller.firmware_version,
-        connections={(dr.CONNECTION_NETWORK_MAC, controller.mac_address)},
-        configuration_url=f"http://{config[CONF_HOST]}",
-    )
-
     for platform in PLATFORMS:
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setup(entry, platform)
@@ -133,3 +122,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+
+def get_device_info(
+    controller: EasySwitch,
+) -> DeviceInfo:
+    """Return EasySwitch device info for all entity types."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, controller.mac_address)},
+        manufacturer="TP-Link",
+        model=controller.hardware_version,
+        name=f"Switch {controller.host}",
+        sw_version=controller.firmware_version,
+        connections={(CONNECTION_NETWORK_MAC, controller.mac_address)},
+        configuration_url=f"http://{controller.host}",
+    )

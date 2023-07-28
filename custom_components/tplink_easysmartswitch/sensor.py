@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
+from . import get_device_info
 from .const import (
     CONTROLLER,
     COORDINATOR,
@@ -38,6 +39,7 @@ async def async_setup_entry(
                 coordinator,
                 port_number=port + 1,
                 attribute=TPLINK_PORT_RX_GOOD_PKT,
+                icon="mdi:download-network",
             )
         )
         entities.append(
@@ -46,6 +48,7 @@ async def async_setup_entry(
                 coordinator,
                 port_number=port + 1,
                 attribute=TPLINK_PORT_TX_GOOD_PKT,
+                icon="mdi:upload-network",
             )
         )
     if entities:
@@ -61,16 +64,18 @@ class TpLinkSpeedSensor(CoordinatorEntity, SensorEntity):
         coordinator,
         port_number,
         attribute,
+        icon,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._last_value = None
+        self._last_value: float | None = None
         self._last_timestamp = None
 
         self.controller = controller
         self._port_number = port_number
         self._attribute = attribute
-        self._attr_unit_of_measurement = "packets/s"
+        self._attr_native_unit_of_measurement = "packets/s"
+        self._attr_icon = icon
 
         suffix = "Ingress" if attribute == TPLINK_PORT_RX_GOOD_PKT else "Egress"
         self._attr_name = f"Port {port_number:02} - {suffix}"
@@ -85,11 +90,7 @@ class TpLinkSpeedSensor(CoordinatorEntity, SensorEntity):
                 ]
             )
         )
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self.controller.mac_address)},
-            "via_device": (DOMAIN, self.controller.mac_address),
-        }
-
+        self._attr_device_info = get_device_info(self.controller)
         self._state = None
 
     def _has_overflowed(self, current_value) -> bool:
@@ -99,7 +100,7 @@ class TpLinkSpeedSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         """Return the state."""
-        current_value = int(self.coordinator.data[self._port_number][self._attribute])
+        current_value = float(self.coordinator.data[self._port_number][self._attribute])
         if current_value is None:
             return None
         current_timestamp = self.coordinator.data[TIMESTAMP]

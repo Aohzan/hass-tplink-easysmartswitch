@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+- Fix DeviceInfo for 2023.8 release
+- Add icons
+
 ## 1.2.0
 
 - Add french translation

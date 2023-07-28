@@ -10,6 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
+from . import get_device_info
 from .const import (
     CONTROLLER,
     COORDINATOR,
@@ -57,6 +58,7 @@ class TpLinkSwitchBinarySensor(CoordinatorEntity, BinarySensorEntity):
         super().__init__(coordinator)
         self.controller = controller
         self._port_number = port_number
+        self._attr_icon = "mdi:switch"
 
         self._attr_name = f"Port {self._port_number:02}"
 
@@ -70,10 +72,7 @@ class TpLinkSwitchBinarySensor(CoordinatorEntity, BinarySensorEntity):
                 ]
             )
         )
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self.controller.mac_address)},
-            "via_device": (DOMAIN, self.controller.mac_address),
-        }
+        self._attr_device_info = get_device_info(self.controller)
 
     @property
     def is_on(self) -> bool | None:

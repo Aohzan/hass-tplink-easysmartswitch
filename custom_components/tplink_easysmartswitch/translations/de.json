@@ -1,0 +1,41 @@
+{
+  "config": {
+      "abort": {
+          "already_configured": "Das Gerät ist bereits eingerichtet"
+      },
+      "error": {
+          "cannot_connect": "Verbindung fehlgeschlagen",
+          "invalid_auth": "Invalide authentifizierung",
+          "unknown": "Unerwarteter Fehler"
+      },
+      "step": {
+          "user": {
+              "data": {
+                  "host": "Host",
+                  "password": "Passwort",
+                  "scan_interval": "Sekunden zwischen Aktualisierungen",
+                  "username": "Nutzername"
+              },
+              "description": "Verbindungseinstellungen einrichten."
+          }
+      }
+  },
+  "options": {
+      "error": {
+          "cannot_connect": "Verbindung fehlgeschlagen",
+          "invalid_auth": "Invalide authentifizierung",
+          "unknown": "Unerwarteter Fehler"
+      },
+      "step": {
+          "init": {
+              "data": {
+                  "host": "Host",
+                  "password": "Passwort",
+                  "scan_interval": "Sekunden zwischen Aktualisierungen",
+                  "username": "Nutzername"
+              },
+              "description": "Einstellungen bearbeiten"
+          }
+      }
+  }
+}

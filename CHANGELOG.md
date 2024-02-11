@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+
+- Add German translation
+
 ## 1.3.1
 
 - Spell fix

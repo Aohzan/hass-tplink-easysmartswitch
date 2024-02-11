@@ -8,7 +8,7 @@
 ## 1.2.0
 
 - Add french translation
-- Code improvments
+- Code improvements
 
 ## 1.1.0
 

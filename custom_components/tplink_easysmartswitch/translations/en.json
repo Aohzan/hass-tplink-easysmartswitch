@@ -16,7 +16,7 @@
                   "scan_interval": "Seconds between updates",
                   "username": "Username"
               },
-              "description": "Set connexion settings."
+              "description": "Set connection settings."
           }
       }
   },

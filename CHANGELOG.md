@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Spell fix
+
 ## 1.3.0
 
 - Fix DeviceInfo for 2023.8 release

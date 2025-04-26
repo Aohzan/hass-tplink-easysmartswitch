@@ -1,0 +1,6 @@
+{
+  "name": "TP-Link Easy Smart Switch",
+  "country": "FR",
+  "render_readme": true,
+  "homeassistant": "2022.5.0"
+}

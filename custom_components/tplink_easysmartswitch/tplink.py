@@ -11,6 +11,7 @@ from homeassistant.util.dt import utcnow
 
 from .const import (
     TIMESTAMP,
+    TPLINK_COUNTER_MODULO,
     TPLINK_PORT_LINK_STATUS,
     TPLINK_PORT_RX_BAD_PKT,
     TPLINK_PORT_RX_GOOD_PKT,
@@ -128,14 +129,29 @@ class EasySwitch:
         The switch answers its login page, with a 200 status, when the session
         expired or was taken by another login: the page must contain the marker.
         """
+        text = await self._request("get", page)
+        if marker not in text:
+            raise TpLinkSwitchNotLoggedInError(f"No {marker} in {page}")
+        return BeautifulSoup(text, "html.parser")
+
+    async def _request(
+        self, method: str, page: str, data: dict[str, str] | None = None
+    ) -> str:
+        """Request a page of the switch and return its text."""
         headers = {
             "Referer": f"{self._url}/",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Upgrade-Insecure-Requests": "1",
         }
+        if self._session is None:
+            raise TpLinkSwitchNotLoggedInError(f"Not logged in to request {page}")
         try:
-            async with self._session.get(  # type: ignore[union-attr]
-                f"{self._url}/{page}", headers=headers, timeout=self._timeout
+            async with self._session.request(
+                method,
+                f"{self._url}/{page}",
+                data=data,
+                headers=headers,
+                timeout=self._timeout,
             ) as response:
                 if response.status in AUTH_ERROR_STATUSES:
                     raise TpLinkSwitchInvalidAuthError(f"HTTP error {response.status}")
@@ -143,22 +159,21 @@ class EasySwitch:
                     raise TpLinkSwitchCannotConnectError(
                         f"HTTP error {response.status}"
                     )
-                text = await response.text()
+                return await response.text()
         except TimeoutError as exception:
             raise TpLinkSwitchCannotConnectError("Timeout error") from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
             raise TpLinkSwitchCannotConnectError(exception) from exception
-        if marker not in text:
-            raise TpLinkSwitchNotLoggedInError(f"No {marker} in {page}")
-        return BeautifulSoup(text, "html.parser")
 
     async def update_informations(self) -> None:
         """Get switch information."""
         soup = await self._get_page("SystemInfoRpm.htm", "macStr")
 
+        if (script := soup.script) is None:
+            raise TpLinkSwitchParseError("No script in the system information")
         mac_address = firmware_version = hardware_version = None
         try:
-            infos = str(soup.script.string).split("\n")  # type: ignore[union-attr]
+            infos = str(script.string).split("\n")
             for idx, element in enumerate(infos):
                 if "macStr" in element:
                     mac_address = infos[idx + 1].replace('"', "")
@@ -166,7 +181,7 @@ class EasySwitch:
                     firmware_version = infos[idx + 1].replace('"', "")
                 elif "hardwareStr" in element:
                     hardware_version = infos[idx + 1].replace('"', "")
-        except (AttributeError, IndexError) as exception:
+        except IndexError as exception:
             raise TpLinkSwitchParseError(
                 f"Unexpected system information: {exception!r}"
             ) from exception
@@ -189,28 +204,30 @@ class EasySwitch:
 
     def _parse_port_statistics(self, soup: BeautifulSoup) -> dict:
         """Return the data of all ports from their statistics page."""
-        convoluted = soup.script == soup.head.script
+        if (head := soup.head) is None:
+            raise TpLinkSwitchParseError("No head in the port statistics")
+        convoluted = soup.script == head.script
 
         pattern = re.compile(r"var (max_port_num) = (.*?);$", re.MULTILINE)
 
         if convoluted:
-            port_number = int(
-                pattern.search(str(soup.head.find_all("script"))).group(2)  # type: ignore
-            )
+            port_number = int(_search(pattern, str(head.find_all("script")), 2))
         else:
-            port_number = int(pattern.search(str(soup.script)).group(2))  # type: ignore
+            port_number = int(_search(pattern, str(soup.script), 2))
         self._ports_count = port_number
 
         if convoluted:
-            i1 = (
-                re.compile(r'tmp_info = "(.*?)";$', re.MULTILINE | re.DOTALL)  # type: ignore
-                .search(str(soup.body.script))
-                .group(1)
+            if (body := soup.body) is None:
+                raise TpLinkSwitchParseError("No body in the port statistics")
+            i1 = _search(
+                re.compile(r'tmp_info = "(.*?)";$', re.MULTILINE | re.DOTALL),
+                str(body.script),
+                1,
             )
-            i2 = (
-                re.compile(r'tmp_info2 = "(.*?)";$', re.MULTILINE | re.DOTALL)  # type: ignore
-                .search(str(soup.body.script))
-                .group(1)
+            i2 = _search(
+                re.compile(r'tmp_info2 = "(.*?)";$', re.MULTILINE | re.DOTALL),
+                str(body.script),
+                1,
             )
             # We simulate bug for bug the way the variables are loaded on the "normal" switch models. In those, each
             # data array has two extra 0 cells at the end. To remain compatible with the balance of the code here,
@@ -219,10 +236,10 @@ class EasySwitch:
                 "tmp_info:[" + i1.rstrip() + " " + i2.rstrip() + ",0,0]"
             ).replace(" ", ",")
         else:
-            script_vars = (
-                re.compile(r"var all_info = {\n?(.*?)\n?};$", re.MULTILINE | re.DOTALL)  # type: ignore
-                .search(str(soup.script))
-                .group(1)
+            script_vars = _search(
+                re.compile(r"var all_info = {\n?(.*?)\n?};$", re.MULTILINE | re.DOTALL),
+                str(soup.script),
+                1,
             )
 
         entries = re.split(",?\n+", script_vars)
@@ -231,7 +248,7 @@ class EasySwitch:
         drop2 = re.compile(r"\[(.*),0,0]")
         for entry in entries:
             e2 = re.split(":", entry)
-            edict[str(e2[0])] = drop2.search(e2[1]).group(1)  # type: ignore
+            edict[str(e2[0])] = _search(drop2, e2[1], 1)
 
         if convoluted:
             e3 = {}
@@ -246,21 +263,31 @@ class EasySwitch:
                 e5[(port * 4) + 2] = ee[(port * 6) + 4]
                 e5[(port * 4) + 3] = ee[(port * 6) + 5]
         else:
-            e3 = re.split(",", edict["state"])  # type: ignore
-            e4 = re.split(",", edict["link_status"])  # type: ignore
-            e5 = re.split(",", edict["pkts"])  # type: ignore
+            e3 = re.split(",", edict["state"])
+            e4 = re.split(",", edict["link_status"])
+            e5 = re.split(",", edict["pkts"])
 
         states = {TIMESTAMP: utcnow()}
         for port in range(1, port_number + 1):
-            states[port] = {  # type: ignore
+            states[port] = {
                 TPLINK_PORT_STATE: TPLINK_STATE[e3[port - 1]],
                 TPLINK_PORT_LINK_STATUS: TPLINK_STATUS[e4[port - 1]],
-                TPLINK_PORT_TX_GOOD_PKT: e5[((port - 1) * 4)],
-                TPLINK_PORT_TX_BAD_PKT: e5[((port - 1) * 4) + 1],
-                TPLINK_PORT_RX_GOOD_PKT: e5[((port - 1) * 4) + 2],
-                TPLINK_PORT_RX_BAD_PKT: e5[((port - 1) * 4) + 3],
+                TPLINK_PORT_TX_GOOD_PKT: _counter(e5[((port - 1) * 4)]),
+                TPLINK_PORT_TX_BAD_PKT: _counter(e5[((port - 1) * 4) + 1]),
+                TPLINK_PORT_RX_GOOD_PKT: _counter(e5[((port - 1) * 4) + 2]),
+                TPLINK_PORT_RX_BAD_PKT: _counter(e5[((port - 1) * 4) + 3]),
             }
         return states
+
+    async def reboot(self) -> None:
+        """Reboot the switch, without saving its configuration."""
+        text = await self._request(
+            "post",
+            "reboot.cgi",
+            data={"reboot_op": "reboot", "save_op": "false"},
+        )
+        if LOGON_INFO.search(text):
+            raise TpLinkSwitchNotLoggedInError("Login page answered to reboot.cgi")
 
     async def close(self) -> None:
         """Close open client session."""
@@ -274,6 +301,18 @@ class EasySwitch:
     async def __aexit__(self, *_exc_info) -> None:
         """Async exit."""
         await self.close()
+
+
+def _search(pattern: re.Pattern[str], text: str, group: int) -> str:
+    """Return a group of the first match of a pattern in a page."""
+    if (match := pattern.search(text)) is None:
+        raise TpLinkSwitchParseError(f"No match of {pattern.pattern!r}")
+    return match.group(group)
+
+
+def _counter(value: str) -> str:
+    """Return the unsigned value of a packet counter sent as a signed integer."""
+    return str(int(value) % TPLINK_COUNTER_MODULO)
 
 
 class TpLinkSwitchError(Exception):

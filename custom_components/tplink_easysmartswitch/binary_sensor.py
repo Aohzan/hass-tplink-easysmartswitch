@@ -16,7 +16,7 @@ from .const import (
     TPLINK_PORT_TX_GOOD_PKT,
 )
 from .coordinator import TpLinkSwitchConfigEntry, TpLinkSwitchCoordinator
-from .entity import TpLinkSwitchEntity
+from .entity import TpLinkSwitchPortEntity
 
 PARALLEL_UPDATES = 0
 
@@ -44,7 +44,7 @@ async def async_setup_entry(
     )
 
 
-class TpLinkSwitchBinarySensor(TpLinkSwitchEntity, BinarySensorEntity):
+class TpLinkSwitchBinarySensor(TpLinkSwitchPortEntity, BinarySensorEntity):
     """Port enabled with a link up."""
 
     def __init__(self, coordinator: TpLinkSwitchCoordinator, port_number: int) -> None:

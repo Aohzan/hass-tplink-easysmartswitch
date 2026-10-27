@@ -92,6 +92,7 @@ def mock_switch() -> Generator[MagicMock]:
     client.login = AsyncMock(return_value=True)
     client.update_informations = AsyncMock()
     client.get_data = AsyncMock(return_value=switch_data())
+    client.reboot = AsyncMock()
     with patch(
         "custom_components.tplink_easysmartswitch.coordinator.EasySwitch",
         return_value=client,

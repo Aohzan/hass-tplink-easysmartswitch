@@ -21,7 +21,9 @@ from .conftest import NOW, switch_data
 INGRESS = "sensor.switch_192_168_1_2_port_01_ingress"
 
 
-@pytest.mark.parametrize("platform", [Platform.BINARY_SENSOR, Platform.SENSOR])
+@pytest.mark.parametrize(
+    "platform", [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
+)
 async def test_entities(
     hass: HomeAssistant,
     entity_registry: er.EntityRegistry,
@@ -63,6 +65,7 @@ async def test_unique_ids(
     assert unique_ids == {
         f"{prefix}_binary_sensor_1",
         f"{prefix}_binary_sensor_2",
+        f"{prefix}_reboot",
         f"{prefix}_speed_sensor_1_rxgoodpkt",
         f"{prefix}_speed_sensor_1_txgoodpkt",
         f"{prefix}_speed_sensor_2_rxgoodpkt",
@@ -111,6 +114,11 @@ async def test_speed(
 
     await update(rx_good="400")
     assert hass.states.get(INGRESS).state == "10.0"
+
+    # Counter wrapped around its 32 bits
+    await update(rx_good="4294967000")
+    await update(rx_good="304")
+    assert hass.states.get(INGRESS).state == "20.0"
 
 
 async def test_missing_port(

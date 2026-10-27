@@ -99,6 +99,37 @@ def switch(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> EasySwit
     )
 
 
+async def test_get_data_unsigned_counters(
+    switch: EasySwitch, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Test the counters sent as negative signed integers are made unsigned."""
+    aioclient_mock.get(
+        f"{URL}/PortStatisticsRpm.htm",
+        text=PORT_STATISTICS.replace("pkts:[10,", "pkts:[-1775203939,"),
+    )
+    data = await switch.get_data()
+    assert data[1]["TxGoodPkt"] == "2519763357"
+
+
+async def test_reboot(switch: EasySwitch, aioclient_mock: AiohttpClientMocker) -> None:
+    """Test the reboot form is posted to the switch."""
+    aioclient_mock.post(f"{URL}/reboot.cgi", text="<html></html>")
+    await switch.reboot()
+    assert aioclient_mock.mock_calls[0][2] == {
+        "reboot_op": "reboot",
+        "save_op": "false",
+    }
+
+
+async def test_reboot_not_logged_in(
+    switch: EasySwitch, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Test the login page answered to the reboot is detected."""
+    aioclient_mock.post(f"{URL}/reboot.cgi", text=LOGIN_PAGE.format(code=5))
+    with pytest.raises(TpLinkSwitchNotLoggedInError):
+        await switch.reboot()
+
+
 async def test_login(switch: EasySwitch, aioclient_mock: AiohttpClientMocker) -> None:
     """Test the credentials are posted to the switch."""
     aioclient_mock.post(f"{URL}/logon.cgi")

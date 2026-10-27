@@ -22,7 +22,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from .conftest import ENTRY_DATA, HOST
+from .conftest import ENTRY_DATA, HOST, MAC
 
 USER_INPUT = {
     CONF_HOST: HOST,
@@ -221,6 +221,60 @@ async def test_reconfigure_flow(
     assert mock_config_entry.data[CONF_HOST] == "192.168.1.3"
     assert mock_config_entry.data[CONF_PASSWORD] == "secret"
     assert mock_config_entry.unique_id == f"{DOMAIN}_192.168.1.3"
+
+
+@pytest.mark.parametrize(
+    ("title", "new_title"),
+    [(f"Switch {HOST}", "Switch 192.168.1.3"), ("Office", "Office")],
+)
+async def test_reconfigure_flow_same_switch(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_switch: MagicMock,
+    title: str,
+    new_title: str,
+) -> None:
+    """Test the MAC address is checked, and the default title follows the address."""
+    mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(mock_config_entry, title=title)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # The same switch, its MAC address written differently
+    mock_switch.mac_address = MAC.lower().replace(":", "-")
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: "192.168.1.3"}
+    )
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert mock_config_entry.data[CONF_HOST] == "192.168.1.3"
+    assert mock_config_entry.title == new_title
+
+
+async def test_reconfigure_flow_other_switch(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_switch: MagicMock,
+) -> None:
+    """Test the address of another switch is refused."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    mock_switch.mac_address = "50:C7:BF:00:00:02"
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: "192.168.1.3"}
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "wrong_device"
+    assert mock_config_entry.data == ENTRY_DATA
+    assert mock_config_entry.unique_id == f"{DOMAIN}_{HOST}"
+    assert mock_config_entry.title == f"Switch {HOST}"
 
 
 async def test_reconfigure_flow_already_configured(

@@ -35,7 +35,8 @@
       "invalid_response": "Réponse inattendue du switch : modèle ou firmware non supporté"
     },
     "abort": {
-      "already_configured": "Appareil déjà configuré"
+      "already_configured": "Appareil déjà configuré",
+      "wrong_device": "Le switch à cette adresse n'est pas le switch configuré"
     }
   },
   "options": {

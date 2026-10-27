@@ -35,7 +35,8 @@
       "invalid_response": "Unerwartete Antwort des Switches: Modell oder Firmware nicht unterstützt"
     },
     "abort": {
-      "already_configured": "Das Gerät ist bereits eingerichtet"
+      "already_configured": "Das Gerät ist bereits eingerichtet",
+      "wrong_device": "Der Switch unter dieser Adresse ist nicht der eingerichtete Switch"
     }
   },
   "options": {

@@ -35,7 +35,8 @@
       "invalid_response": "Unexpected answer of the switch: model or firmware not supported"
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "wrong_device": "The switch at this address is not the configured switch"
     }
   },
   "options": {

@@ -1,10 +1,8 @@
 """Query the TP-Link Easy Smart Switch."""
-import asyncio
 import re
 import socket
 
 import aiohttp
-import async_timeout
 from bs4 import BeautifulSoup
 
 from homeassistant.util.dt import utcnow
@@ -43,7 +41,7 @@ class EasySwitch:
         self._user = user
         self._password = password
 
-        self._request_timeout = request_timeout
+        self._timeout = aiohttp.ClientTimeout(total=request_timeout)
         self._session = session
         self._close_session = False
 
@@ -82,36 +80,43 @@ class EasySwitch:
         headers = {"Referer": f"{self._url}/Logout.htm"}
 
         try:
-            with async_timeout.timeout(self._request_timeout):
-                await self._session.post(
-                    f"{self._url}/logon.cgi",
-                    data=data,
-                    headers=headers,
-                    timeout=self._request_timeout,
-                )
-        except asyncio.TimeoutError as exception:
+            async with self._session.post(
+                f"{self._url}/logon.cgi",
+                data=data,
+                headers=headers,
+                timeout=self._timeout,
+            ):
+                pass
+        except TimeoutError as exception:
             raise TpLinkSwitchCannotConnectError("Timeout error") from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
             raise TpLinkSwitchCannotConnectError(exception) from exception
 
         return True
 
-    async def update_informations(self) -> None:
-        """Get switch information."""
+    async def _get_page(self, page: str) -> BeautifulSoup:
+        """Get a page of the switch, logged in."""
         headers = {
             "Referer": f"{self._url}/",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Upgrade-Insecure-Requests": "1",
         }
-        request = await self._session.get(  # type: ignore
-            f"{self._url}/SystemInfoRpm.htm",
-            headers=headers,
-            timeout=self._request_timeout,
-        )
-        soup = BeautifulSoup(await request.text(), "html.parser")
+        try:
+            async with self._session.get(  # type: ignore[union-attr]
+                f"{self._url}/{page}", headers=headers, timeout=self._timeout
+            ) as response:
+                if response.status != 200:
+                    raise TpLinkSwitchInvalidAuthError("Authentication failed")
+                text = await response.text()
+        except TimeoutError as exception:
+            raise TpLinkSwitchCannotConnectError("Timeout error") from exception
+        except (aiohttp.ClientError, socket.gaierror) as exception:
+            raise TpLinkSwitchCannotConnectError(exception) from exception
+        return BeautifulSoup(text, "html.parser")
 
-        if request.status != 200:
-            raise TpLinkSwitchInvalidAuthError("Authentication failed")
+    async def update_informations(self) -> None:
+        """Get switch information."""
+        soup = await self._get_page("SystemInfoRpm.htm")
 
         infos = str(soup.script.string).split("\n")
         for idx, element in enumerate(infos):
@@ -124,22 +129,9 @@ class EasySwitch:
 
     async def get_data(self) -> dict:
         """Get all ports data."""
-        headers = {
-            "Referer": f"{self._url}/",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Upgrade-Insecure-Requests": "1",
-        }
-        request = await self._session.get(  # type: ignore
-            f"{self._url}/PortStatisticsRpm.htm",
-            headers=headers,
-            timeout=self._request_timeout,
-        )
-        soup = BeautifulSoup(await request.text(), "html.parser")
+        soup = await self._get_page("PortStatisticsRpm.htm")
 
         convoluted = soup.script == soup.head.script
-
-        if request.status != 200:
-            raise TpLinkSwitchInvalidAuthError("Authentication failed")
 
         pattern = re.compile(r"var (max_port_num) = (.*?);$", re.MULTILINE)
 

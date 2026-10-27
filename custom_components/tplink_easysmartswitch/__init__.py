@@ -83,7 +83,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
 
-    await controller.update_informations()
+    try:
+        await controller.update_informations()
+    except TpLinkSwitchInvalidAuthError as error:
+        raise ConfigEntryAuthFailed from error
+    except TpLinkSwitchCannotConnectError as error:
+        raise ConfigEntryNotReady from error
 
     undo_listener = entry.add_update_listener(_async_update_listener)
     hass.data[DOMAIN][entry.entry_id] = {

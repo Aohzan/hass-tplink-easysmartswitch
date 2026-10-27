@@ -1,41 +1,71 @@
 {
   "config": {
-      "abort": {
-          "already_configured": "Das Gerät ist bereits eingerichtet"
+    "step": {
+      "user": {
+        "description": "Verbindungseinstellungen einrichten.",
+        "data": {
+          "host": "Host",
+          "scan_interval": "Sekunden zwischen Aktualisierungen",
+          "username": "Nutzername",
+          "password": "Passwort"
+        }
       },
-      "error": {
-          "cannot_connect": "Verbindung fehlgeschlagen",
-          "invalid_auth": "Invalide authentifizierung",
-          "unknown": "Unerwarteter Fehler"
+      "reauth_confirm": {
+        "title": "Switch-Authentifizierung",
+        "description": "Der Switch {host} hat die Anmeldedaten abgelehnt. Gib die neuen ein.",
+        "data": {
+          "username": "Nutzername",
+          "password": "Passwort"
+        }
       },
-      "step": {
-          "user": {
-              "data": {
-                  "host": "Host",
-                  "password": "Passwort",
-                  "scan_interval": "Sekunden zwischen Aktualisierungen",
-                  "username": "Nutzername"
-              },
-              "description": "Verbindungseinstellungen einrichten."
-          }
+      "reconfigure": {
+        "title": "Switch-Adresse",
+        "description": "Aktualisiere die Adresse des Switches.",
+        "data": {
+          "host": "Host"
+        }
       }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Ungültige Authentifizierung",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "abort": {
+      "already_configured": "Das Gerät ist bereits eingerichtet"
+    }
   },
   "options": {
-      "error": {
-          "cannot_connect": "Verbindung fehlgeschlagen",
-          "invalid_auth": "Invalide authentifizierung",
-          "unknown": "Unerwarteter Fehler"
-      },
-      "step": {
-          "init": {
-              "data": {
-                  "host": "Host",
-                  "password": "Passwort",
-                  "scan_interval": "Sekunden zwischen Aktualisierungen",
-                  "username": "Nutzername"
-              },
-              "description": "Einstellungen bearbeiten"
-          }
+    "step": {
+      "init": {
+        "description": "Einstellungen bearbeiten",
+        "data": {
+          "scan_interval": "Sekunden zwischen Aktualisierungen"
+        }
       }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "port": {
+        "name": "Port {port}"
+      }
+    },
+    "sensor": {
+      "ingress": {
+        "name": "Port {port} eingehend"
+      },
+      "egress": {
+        "name": "Port {port} ausgehend"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Fehler bei der Kommunikation mit dem Switch: {error}"
+    },
+    "invalid_auth": {
+      "message": "Der Switch hat die Anmeldedaten abgelehnt"
+    }
   }
 }

@@ -1,20 +1,13 @@
-"""Support for the TP-Link Easy Smart Switch."""
+"""Support for the TP-Link Easy Smart Switch port links."""
+
 from collections.abc import Mapping
-import logging
 from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util import slugify
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import get_device_info
 from .const import (
-    CONTROLLER,
-    COORDINATOR,
-    DOMAIN,
     TPLINK_PORT_LINK_STATUS,
     TPLINK_PORT_RX_BAD_PKT,
     TPLINK_PORT_RX_GOOD_PKT,
@@ -22,87 +15,65 @@ from .const import (
     TPLINK_PORT_TX_BAD_PKT,
     TPLINK_PORT_TX_GOOD_PKT,
 )
-from .tplink import EasySwitch
+from .coordinator import TpLinkSwitchConfigEntry, TpLinkSwitchCoordinator
+from .entity import TpLinkSwitchEntity
 
-_LOGGER = logging.getLogger(__name__)
+PARALLEL_UPDATES = 0
+
+# Attribute name of each port value
+PORT_ATTRIBUTES = {
+    "status": TPLINK_PORT_STATE,
+    "link_status": TPLINK_PORT_LINK_STATUS,
+    "tx_good_packet": TPLINK_PORT_TX_GOOD_PKT,
+    "tx_bad_packet": TPLINK_PORT_TX_BAD_PKT,
+    "rx_good_packet": TPLINK_PORT_RX_GOOD_PKT,
+    "rx_bad_paquet": TPLINK_PORT_RX_BAD_PKT,
+}
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: TpLinkSwitchConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the TP-Link Easy Smart binary sensor platform."""
-    data = hass.data[DOMAIN][entry.entry_id]
-    controller: EasySwitch = data[CONTROLLER]
-    coordinator = data[COORDINATOR]
+    coordinator = entry.runtime_data
+    async_add_entities(
+        TpLinkSwitchBinarySensor(coordinator, port_number)
+        for port_number in range(1, coordinator.controller.port_number + 1)
+    )
 
-    entities = []
-    ports_count = controller.port_number
-    for port in range(ports_count):
-        entities.append(
-            TpLinkSwitchBinarySensor(controller, coordinator, port_number=port + 1)
+
+class TpLinkSwitchBinarySensor(TpLinkSwitchEntity, BinarySensorEntity):
+    """Port enabled with a link up."""
+
+    def __init__(self, coordinator: TpLinkSwitchCoordinator, port_number: int) -> None:
+        """Initialize the binary sensor."""
+        super().__init__(
+            coordinator,
+            port_number,
+            unique_id_suffix=f"binary_sensor_{port_number}",
+            translation_key="port",
         )
-    if entities:
-        async_add_entities(entities)
 
-
-class TpLinkSwitchBinarySensor(CoordinatorEntity, BinarySensorEntity):
-    """Representation of a generic TP-Link Easy Smart Switch sensor."""
-
-    def __init__(
-        self,
-        controller,
-        coordinator,
-        port_number,
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator)
-        self.controller = controller
-        self._port_number = port_number
-        self._attr_icon = "mdi:switch"
-
-        self._attr_name = f"Port {self._port_number:02}"
-
-        self._attr_unique_id = slugify(
-            "_".join(
-                [
-                    DOMAIN,
-                    self.controller.mac_address,
-                    "binary_sensor",
-                    str(self._port_number),
-                ]
-            )
-        )
-        self._attr_device_info = get_device_info(self.controller)
+    @property
+    def _port_data(self) -> dict[str, Any] | None:
+        """Return the values of the port."""
+        return self.coordinator.data.get(self._port_number)
 
     @property
     def is_on(self) -> bool | None:
         """Return the state."""
+        if (port_data := self._port_data) is None:
+            return None
         return (
-            self.coordinator.data[self._port_number][TPLINK_PORT_STATE] == "Enabled"
-            and self.coordinator.data[self._port_number][TPLINK_PORT_LINK_STATUS]
-            != "Link Down"
+            port_data[TPLINK_PORT_STATE] == "Enabled"
+            and port_data[TPLINK_PORT_LINK_STATUS] != "Link Down"
         )
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Return the state attributes."""
-        if self.coordinator.data:
-            return {
-                "status": self.coordinator.data[self._port_number][TPLINK_PORT_STATE],
-                "link_status": self.coordinator.data[self._port_number][
-                    TPLINK_PORT_LINK_STATUS
-                ],
-                "tx_good_packet": self.coordinator.data[self._port_number][
-                    TPLINK_PORT_TX_GOOD_PKT
-                ],
-                "tx_bad_packet": self.coordinator.data[self._port_number][
-                    TPLINK_PORT_TX_BAD_PKT
-                ],
-                "rx_good_packet": self.coordinator.data[self._port_number][
-                    TPLINK_PORT_RX_GOOD_PKT
-                ],
-                "rx_bad_paquet": self.coordinator.data[self._port_number][
-                    TPLINK_PORT_RX_BAD_PKT
-                ],
-            }
-        return None
+        if (port_data := self._port_data) is None:
+            return None
+        return {name: port_data[key] for name, key in PORT_ATTRIBUTES.items()}

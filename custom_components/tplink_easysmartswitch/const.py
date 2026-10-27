@@ -1,12 +1,13 @@
 """Constant for the TP-Link Easy Smart Switch integration."""
+
+from homeassistant.const import Platform
+
 DOMAIN = "tplink_easysmartswitch"
 
-CONTROLLER = "controller"
-COORDINATOR = "coordinator"
-PLATFORMS = ["binary_sensor", "sensor"]
-UNDO_UPDATE_LISTENER = "undo_update_listener"
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 DEFAULT_SCAN_INTERVAL = 30
+DEFAULT_USERNAME = "admin"
 
 TIMESTAMP = "timestamp"
 

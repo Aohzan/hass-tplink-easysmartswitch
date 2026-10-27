@@ -1,4 +1,5 @@
 """Query the TP-Link Easy Smart Switch."""
+
 import re
 import socket
 
@@ -29,13 +30,13 @@ class EasySwitch:
         user: str,
         password: str,
         request_timeout: int = 10,
-        session: aiohttp.client.ClientSession = None,
+        session: aiohttp.ClientSession | None = None,
     ) -> None:
         """Init a switch."""
         self._host = host
-        self._mac_address = None
-        self._firmware_version = None
-        self._hardware_version = None
+        self._mac_address: str | None = None
+        self._firmware_version: str | None = None
+        self._hardware_version: str | None = None
         self._ports_count = 0
         self._url = f"http://{host}"
         self._user = user
@@ -51,17 +52,17 @@ class EasySwitch:
         return self._host
 
     @property
-    def mac_address(self):
+    def mac_address(self) -> str | None:
         """Switch's mac address."""
         return self._mac_address
 
     @property
-    def hardware_version(self):
+    def hardware_version(self) -> str | None:
         """Switch's hardware version."""
         return self._hardware_version
 
     @property
-    def firmware_version(self):
+    def firmware_version(self) -> str | None:
         """Switch's firmware version."""
         return self._firmware_version
 
@@ -180,7 +181,7 @@ class EasySwitch:
             e4 = {}
             e5 = {}
             ee = re.split(",", edict["tmp_info"])
-            for port in range(0, port_number):
+            for port in range(port_number):
                 e3[port] = ee[(port * 6)]
                 e4[port] = ee[(port * 6) + 1]
                 e5[(port * 4)] = ee[(port * 6) + 2]

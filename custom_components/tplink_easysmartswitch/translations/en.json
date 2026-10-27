@@ -1,41 +1,71 @@
 {
   "config": {
-      "abort": {
-          "already_configured": "Device is already configured"
+    "step": {
+      "user": {
+        "description": "Set connection settings.",
+        "data": {
+          "host": "Host",
+          "scan_interval": "Seconds between updates",
+          "username": "Username",
+          "password": "Password"
+        }
       },
-      "error": {
-          "cannot_connect": "Failed to connect",
-          "invalid_auth": "Invalid authentication",
-          "unknown": "Unexpected error"
+      "reauth_confirm": {
+        "title": "Switch authentication",
+        "description": "The switch {host} rejected the credentials. Enter the new ones.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
       },
-      "step": {
-          "user": {
-              "data": {
-                  "host": "Host",
-                  "password": "Password",
-                  "scan_interval": "Seconds between updates",
-                  "username": "Username"
-              },
-              "description": "Set connection settings."
-          }
+      "reconfigure": {
+        "title": "Switch address",
+        "description": "Update the address of the switch.",
+        "data": {
+          "host": "Host"
+        }
       }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
   },
   "options": {
-      "error": {
-          "cannot_connect": "Failed to connect",
-          "invalid_auth": "Invalid authentication",
-          "unknown": "Unexpected error"
-      },
-      "step": {
-          "init": {
-              "data": {
-                  "host": "Host",
-                  "password": "Password",
-                  "scan_interval": "Seconds between updates",
-                  "username": "Username"
-              },
-              "description": "Update settings"
-          }
+    "step": {
+      "init": {
+        "description": "Update settings",
+        "data": {
+          "scan_interval": "Seconds between updates"
+        }
       }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "port": {
+        "name": "Port {port}"
+      }
+    },
+    "sensor": {
+      "ingress": {
+        "name": "Port {port} ingress"
+      },
+      "egress": {
+        "name": "Port {port} egress"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Error while communicating with the switch: {error}"
+    },
+    "invalid_auth": {
+      "message": "The switch rejected the credentials"
+    }
   }
 }

@@ -4,20 +4,35 @@
       "user": {
         "description": "Set connection settings.",
         "data": {
-          "host": "[%key:common::config_flow::data::host%]",
+          "host": "Host",
           "scan_interval": "Seconds between updates",
-          "username": "[%key:common::config_flow::data::username%]",
-          "password": "[%key:common::config_flow::data::password%]"
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Switch authentication",
+        "description": "The switch {host} rejected the credentials. Enter the new ones.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Switch address",
+        "description": "Update the address of the switch.",
+        "data": {
+          "host": "Host"
         }
       }
     },
     "error": {
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "Device is already configured"
     }
   },
   "options": {
@@ -25,17 +40,32 @@
       "init": {
         "description": "Update settings",
         "data": {
-          "host": "[%key:common::config_flow::data::host%]",
-          "scan_interval": "Seconds between updates",
-          "username": "[%key:common::config_flow::data::username%]",
-          "password": "[%key:common::config_flow::data::password%]"
+          "scan_interval": "Seconds between updates"
         }
       }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "port": {
+        "name": "Port {port}"
+      }
     },
-    "error": {
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+    "sensor": {
+      "ingress": {
+        "name": "Port {port} ingress"
+      },
+      "egress": {
+        "name": "Port {port} egress"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Error while communicating with the switch: {error}"
+    },
+    "invalid_auth": {
+      "message": "The switch rejected the credentials"
     }
   }
 }

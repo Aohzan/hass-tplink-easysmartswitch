@@ -1,41 +1,71 @@
 {
   "config": {
-      "abort": {
-          "already_configured": "Appareil déjà configuré"
+    "step": {
+      "user": {
+        "description": "Paramètres de connexion.",
+        "data": {
+          "host": "Host",
+          "scan_interval": "Secondes entre mises à jour",
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe"
+        }
       },
-      "error": {
-          "cannot_connect": "Impossible de se connecter",
-          "invalid_auth": "Authentification invalide",
-          "unknown": "Erreur inconnue"
+      "reauth_confirm": {
+        "title": "Authentification du switch",
+        "description": "Le switch {host} a refusé les identifiants. Saisissez les nouveaux.",
+        "data": {
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe"
+        }
       },
-      "step": {
-          "user": {
-              "data": {
-                  "host": "Host",
-                  "password": "Mot de passe",
-                  "scan_interval": "Secondes entre mises à jour",
-                  "username": "Nom d'utilisateur"
-              },
-              "description": "Paramètres de connexion."
-          }
+      "reconfigure": {
+        "title": "Adresse du switch",
+        "description": "Modifiez l'adresse du switch.",
+        "data": {
+          "host": "Host"
+        }
       }
+    },
+    "error": {
+      "cannot_connect": "Impossible de se connecter",
+      "invalid_auth": "Authentification invalide",
+      "unknown": "Erreur inconnue"
+    },
+    "abort": {
+      "already_configured": "Appareil déjà configuré"
+    }
   },
   "options": {
-      "error": {
-        "cannot_connect": "Impossible de se connecter",
-        "invalid_auth": "Authentification invalide",
-        "unknown": "Erreur inconnue"
-      },
-      "step": {
-          "init": {
-              "data": {
-                  "host": "Host",
-                  "password": "Mot de passe",
-                  "scan_interval": "Secondes entre mises à jour",
-                  "username": "Nom d'utilisateur"
-              },
-              "description": "Mise à jour des paramètres de connexion."
-          }
+    "step": {
+      "init": {
+        "description": "Mise à jour des paramètres.",
+        "data": {
+          "scan_interval": "Secondes entre mises à jour"
+        }
       }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "port": {
+        "name": "Port {port}"
+      }
+    },
+    "sensor": {
+      "ingress": {
+        "name": "Port {port} entrant"
+      },
+      "egress": {
+        "name": "Port {port} sortant"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Erreur de communication avec le switch : {error}"
+    },
+    "invalid_auth": {
+      "message": "Le switch a refusé les identifiants"
+    }
   }
 }

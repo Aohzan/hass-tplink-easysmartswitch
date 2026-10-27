@@ -1,41 +1,87 @@
 {
   "config": {
-      "abort": {
-          "already_configured": "Das Gerät ist bereits eingerichtet"
+    "step": {
+      "user": {
+        "description": "Verbindungseinstellungen einrichten.",
+        "data": {
+          "host": "Host",
+          "scan_interval": "Sekunden zwischen Aktualisierungen",
+          "username": "Nutzername",
+          "password": "Passwort"
+        }
       },
-      "error": {
-          "cannot_connect": "Verbindung fehlgeschlagen",
-          "invalid_auth": "Invalide authentifizierung",
-          "unknown": "Unerwarteter Fehler"
+      "reauth_confirm": {
+        "title": "Switch-Authentifizierung",
+        "description": "Der Switch {host} hat die Anmeldedaten abgelehnt. Gib die neuen ein.",
+        "data": {
+          "username": "Nutzername",
+          "password": "Passwort"
+        }
       },
-      "step": {
-          "user": {
-              "data": {
-                  "host": "Host",
-                  "password": "Passwort",
-                  "scan_interval": "Sekunden zwischen Aktualisierungen",
-                  "username": "Nutzername"
-              },
-              "description": "Verbindungseinstellungen einrichten."
-          }
+      "reconfigure": {
+        "title": "Switch-Adresse",
+        "description": "Aktualisiere die Adresse des Switches.",
+        "data": {
+          "host": "Host"
+        }
       }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Ungültige Authentifizierung",
+      "unknown": "Unerwarteter Fehler",
+      "login_refused": "Der Switch hat die Anmeldung abgelehnt, zum Beispiel wegen zu vieler Sitzungen",
+      "not_logged_in": "Der Switch hat keine Sitzung geöffnet: Anmeldedaten prüfen und von seiner Weboberfläche abmelden",
+      "invalid_response": "Unerwartete Antwort des Switches: Modell oder Firmware nicht unterstützt"
+    },
+    "abort": {
+      "already_configured": "Das Gerät ist bereits eingerichtet",
+      "wrong_device": "Der Switch unter dieser Adresse ist nicht der eingerichtete Switch"
+    }
   },
   "options": {
-      "error": {
-          "cannot_connect": "Verbindung fehlgeschlagen",
-          "invalid_auth": "Invalide authentifizierung",
-          "unknown": "Unerwarteter Fehler"
-      },
-      "step": {
-          "init": {
-              "data": {
-                  "host": "Host",
-                  "password": "Passwort",
-                  "scan_interval": "Sekunden zwischen Aktualisierungen",
-                  "username": "Nutzername"
-              },
-              "description": "Einstellungen bearbeiten"
-          }
+    "step": {
+      "init": {
+        "description": "Einstellungen bearbeiten",
+        "data": {
+          "scan_interval": "Sekunden zwischen Aktualisierungen"
+        }
       }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "port": {
+        "name": "Port {port}"
+      }
+    },
+    "sensor": {
+      "ingress": {
+        "name": "Port {port} eingehend"
+      },
+      "egress": {
+        "name": "Port {port} ausgehend"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Fehler bei der Kommunikation mit dem Switch: {error}"
+    },
+    "invalid_auth": {
+      "message": "Der Switch hat die Anmeldedaten abgelehnt"
+    },
+    "login_refused": {
+      "message": "Der Switch hat die Anmeldung abgelehnt"
+    },
+    "session_lost": {
+      "message": "Der Switch hat die Sitzung geschlossen"
+    },
+    "invalid_response": {
+      "message": "Unerwartete Antwort des Switches: {error}"
+    },
+    "session_in_use": {
+      "message": "Der Switch erlaubt nur eine Sitzung, die von einer anderen Anmeldung verwendet wird, vermutlich seiner Weboberfläche: nächste Anmeldung um {time}"
+    }
   }
 }

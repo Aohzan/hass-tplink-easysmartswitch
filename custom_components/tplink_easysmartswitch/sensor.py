@@ -1,124 +1,127 @@
-"""Support for the TP-Link Easy Smart Switch."""
-import logging
+"""Support for the TP-Link Easy Smart Switch port speeds."""
 
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util import slugify
+from dataclasses import dataclass
+from datetime import datetime
 
-from . import get_device_info
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
 from .const import (
-    CONTROLLER,
-    COORDINATOR,
-    DOMAIN,
     TIMESTAMP,
+    TPLINK_COUNTER_MODULO,
     TPLINK_PORT_RX_GOOD_PKT,
     TPLINK_PORT_TX_GOOD_PKT,
 )
-from .tplink import EasySwitch
+from .coordinator import TpLinkSwitchConfigEntry, TpLinkSwitchCoordinator
+from .entity import TpLinkSwitchPortEntity
 
-_LOGGER = logging.getLogger(__name__)
+PARALLEL_UPDATES = 0
+
+# Packets per second of a gigabit port sending its smallest frames
+MAX_PACKET_RATE = 1_488_096
+
+
+@dataclass(frozen=True, kw_only=True)
+class TpLinkSpeedSensorEntityDescription(SensorEntityDescription):
+    """Describe a speed sensor derived from a packet counter of a port."""
+
+    counter: str
+
+
+SPEED_SENSORS = (
+    TpLinkSpeedSensorEntityDescription(
+        key="ingress",
+        translation_key="ingress",
+        counter=TPLINK_PORT_RX_GOOD_PKT,
+        native_unit_of_measurement="packets/s",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    TpLinkSpeedSensorEntityDescription(
+        key="egress",
+        translation_key="egress",
+        counter=TPLINK_PORT_TX_GOOD_PKT,
+        native_unit_of_measurement="packets/s",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: TpLinkSwitchConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the TP-Link Easy Smart Switch platform."""
-    data = hass.data[DOMAIN][entry.entry_id]
-    controller: EasySwitch = data[CONTROLLER]
-    coordinator = data[COORDINATOR]
-
-    entities = []
-    ports_count = controller.port_number
-    for port in range(ports_count):
-        entities.append(
-            TpLinkSpeedSensor(
-                controller,
-                coordinator,
-                port_number=port + 1,
-                attribute=TPLINK_PORT_RX_GOOD_PKT,
-                icon="mdi:download-network",
-            )
-        )
-        entities.append(
-            TpLinkSpeedSensor(
-                controller,
-                coordinator,
-                port_number=port + 1,
-                attribute=TPLINK_PORT_TX_GOOD_PKT,
-                icon="mdi:upload-network",
-            )
-        )
-    if entities:
-        async_add_entities(entities)
+    coordinator = entry.runtime_data
+    async_add_entities(
+        TpLinkSpeedSensor(coordinator, port_number, description)
+        for port_number in range(1, coordinator.controller.port_number + 1)
+        for description in SPEED_SENSORS
+    )
 
 
-class TpLinkSpeedSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a generic TP-Link Easy Smart Switch sensor."""
+class TpLinkSpeedSensor(TpLinkSwitchPortEntity, SensorEntity):
+    """Packets per second received or sent by a port."""
+
+    entity_description: TpLinkSpeedSensorEntityDescription
 
     def __init__(
         self,
-        controller,
-        coordinator,
-        port_number,
-        attribute,
-        icon,
+        coordinator: TpLinkSwitchCoordinator,
+        port_number: int,
+        description: TpLinkSpeedSensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._last_value: float | None = None
-        self._last_timestamp = None
-
-        self.controller = controller
-        self._port_number = port_number
-        self._attribute = attribute
-        self._attr_native_unit_of_measurement = "packets/s"
-        self._attr_icon = icon
-
-        suffix = "Ingress" if attribute == TPLINK_PORT_RX_GOOD_PKT else "Egress"
-        self._attr_name = f"Port {port_number:02} - {suffix}"
-        self._attr_unique_id = slugify(
-            "_".join(
-                [
-                    DOMAIN,
-                    self.controller.mac_address,
-                    "speed_sensor",
-                    str(port_number),
-                    attribute,
-                ]
-            )
+        super().__init__(
+            coordinator,
+            port_number,
+            unique_id_suffix=f"speed_sensor_{port_number}_{description.counter}",
+            translation_key=description.key,
         )
-        self._attr_device_info = get_device_info(self.controller)
-        self._state = None
+        self.entity_description = description
+        self._last_value: int | None = None
+        self._last_timestamp: datetime | None = None
+        # The first value is the reference of the next update
+        self._update_speed()
 
-    def _has_overflowed(self, current_value) -> bool:
-        """Check if value has overflowed."""
-        return current_value < self._last_value
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Compute the speed from the new counter value."""
+        self._update_speed()
+        super()._handle_coordinator_update()
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the state."""
-        current_value = float(self.coordinator.data[self._port_number][self._attribute])
-        if current_value is None:
-            return None
+    def _update_speed(self) -> None:
+        """Derive the speed from the packet counter since the previous update."""
+        port_data = self.coordinator.data.get(self._port_number)
+        if port_data is None or port_data.get(self.entity_description.counter) is None:
+            self._attr_native_value = None
+            return
+        current_value = int(port_data[self.entity_description.counter])
         current_timestamp = self.coordinator.data[TIMESTAMP]
-        if self._last_value is None or self._has_overflowed(current_value):
-            self._last_value = current_value
-            self._last_timestamp = current_timestamp
-            return None
 
-        # Calculate derivative.
-        delta_value = current_value - self._last_value
-        delta_time = current_timestamp - self._last_timestamp
-        if delta_time.total_seconds() == 0:
-            # Prevent division by 0.
-            return None
-        derived = delta_value / delta_time.total_seconds()
+        if self._last_value is None or self._last_timestamp is None:
+            # First value
+            self._attr_native_value = None
+        else:
+            delta_time = (current_timestamp - self._last_timestamp).total_seconds()
+            if delta_time <= 0:
+                # Same data as the previous update
+                return
+            # A lower value is a counter that wrapped around, unless the
+            # packets since the previous value exceed the line rate: the
+            # counter was then reset by a restart of the switch
+            speed = (
+                (current_value - self._last_value) % TPLINK_COUNTER_MODULO
+            ) / delta_time
+            if current_value < self._last_value and speed > MAX_PACKET_RATE:
+                self._attr_native_value = None
+            else:
+                self._attr_native_value = round(speed, 2)
 
-        # Store current values for future use.
         self._last_value = current_value
         self._last_timestamp = current_timestamp
-
-        return round(derived, 2)

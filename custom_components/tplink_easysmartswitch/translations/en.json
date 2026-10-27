@@ -78,6 +78,9 @@
     },
     "invalid_response": {
       "message": "Unexpected answer of the switch: {error}"
+    },
+    "session_in_use": {
+      "message": "The switch allows a single session, in use by another login, most likely its web interface: next login at {time}"
     }
   }
 }

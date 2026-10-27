@@ -13,6 +13,14 @@ Copy the `custom_components/tplink_easysmartswitch` folder into the config folde
 
 Go to Configuration >> Integrations in the UI, click the button with + sign and from the list of integrations select TP-Link Easy Smart Switch.
 
+## Web interface of the switch
+
+The switch allows a single web session: logging in its web interface closes the session of Home Assistant, and the other way round.
+
+When the session of Home Assistant is closed less than 5 minutes after it was last used, the integration takes it as a login in the web interface: it leaves the switch alone for 5 minutes, and its entities are unavailable meanwhile. Then it logs in again, which closes the session of the web interface if it is still open. Log in again in the web interface to get 5 more minutes.
+
+When the session was unused for longer (scan interval of 5 minutes or more, or switch unreachable meanwhile), the integration considers it expired and logs in again right away.
+
 ## Lovelace Card example
 
 With `multiple-entity-row` custom card:

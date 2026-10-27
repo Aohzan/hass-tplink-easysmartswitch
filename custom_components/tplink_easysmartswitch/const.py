@@ -1,5 +1,7 @@
 """Constant for the TP-Link Easy Smart Switch integration."""
 
+from datetime import timedelta
+
 from homeassistant.const import Platform
 
 DOMAIN = "tplink_easysmartswitch"
@@ -8,6 +10,9 @@ PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 DEFAULT_SCAN_INTERVAL = 30
 DEFAULT_USERNAME = "admin"
+# The switch allows a single web session: when another login takes it (most
+# likely the web interface), wait this long before logging in again
+LOGIN_GRACE_PERIOD = timedelta(minutes=5)
 
 TIMESTAMP = "timestamp"
 

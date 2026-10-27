@@ -10,6 +10,9 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.tplink_easysmartswitch.const import DOMAIN
+from custom_components.tplink_easysmartswitch.coordinator import (
+    TpLinkSwitchCoordinator,
+)
 from custom_components.tplink_easysmartswitch.tplink import (
     TpLinkSwitchCannotConnectError,
     TpLinkSwitchInvalidAuthError,
@@ -80,37 +83,106 @@ async def test_setup_invalid_auth(
     assert [flow["context"]["source"] for flow in flows] == [SOURCE_REAUTH]
 
 
-async def test_expired_session(
+async def setup_entry(
+    hass: HomeAssistant, entry: MockConfigEntry, scan_interval: int = 30
+) -> TpLinkSwitchCoordinator:
+    """Set up the entry, returning its coordinator."""
+    entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_SCAN_INTERVAL: scan_interval}
+    )
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry.runtime_data
+
+
+async def next_update(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory, seconds: float = 30
+) -> None:
+    """Move to the next update of the coordinator."""
+    freezer.tick(seconds)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+
+async def test_session_taken(
     hass: HomeAssistant,
     freezer: FrozenDateTimeFactory,
     mock_config_entry: MockConfigEntry,
     mock_switch: MagicMock,
 ) -> None:
-    """Test an expired session logs in again, once."""
-    mock_config_entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
-    coordinator = mock_config_entry.runtime_data
+    """Test the session taken by another login is left to it for a while."""
+    coordinator = await setup_entry(hass, mock_config_entry)
 
-    # The switch answered its login page: logged in again
+    # The session was open at the previous update: someone logged in the web
+    # interface, don't log in again
+    mock_switch.get_data.side_effect = TpLinkSwitchNotLoggedInError
+    await next_update(hass, freezer)
+    assert not coordinator.last_update_success
+    assert mock_switch.login.await_count == 1
+    assert mock_switch.get_data.await_count == 2
+
+    # The switch is left alone during the grace period
+    await next_update(hass, freezer, 4 * 60)
+    assert not coordinator.last_update_success
+    assert mock_switch.login.await_count == 1
+    assert mock_switch.get_data.await_count == 2
+
+    # Then logged in again
+    mock_switch.get_data.side_effect = None
+    await next_update(hass, freezer, 60)
+    assert coordinator.last_update_success
+    assert mock_switch.login.await_count == 2
+    assert mock_switch.get_data.await_count == 3
+    assert not hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+
+
+async def test_session_taken_again(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+    mock_config_entry: MockConfigEntry,
+    mock_switch: MagicMock,
+) -> None:
+    """Test the session lost right after the login waits for the grace period."""
+    coordinator = await setup_entry(hass, mock_config_entry, scan_interval=600)
+
+    # The session expired since the previous update: logged in again, but the
+    # session is lost again
+    mock_switch.get_data.side_effect = TpLinkSwitchNotLoggedInError
+    await next_update(hass, freezer, 600)
+    assert not coordinator.last_update_success
+    assert mock_switch.login.await_count == 2
+
+    # The grace period is over at the next update
+    mock_switch.get_data.side_effect = None
+    await next_update(hass, freezer, 600)
+    assert coordinator.last_update_success
+    assert mock_switch.login.await_count == 3
+
+
+@pytest.mark.parametrize("scan_interval", [30, 600])
+async def test_expired_session(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+    mock_config_entry: MockConfigEntry,
+    mock_switch: MagicMock,
+    scan_interval: int,
+) -> None:
+    """Test an expired session logs in again right away."""
+    coordinator = await setup_entry(hass, mock_config_entry, scan_interval)
+    if scan_interval == 30:
+        # The switch restarted: unreachable, then its session is lost
+        mock_switch.get_data.side_effect = TpLinkSwitchCannotConnectError
+        await next_update(hass, freezer)
+        assert not coordinator.last_update_success
+
     mock_switch.get_data.side_effect = [
         TpLinkSwitchNotLoggedInError,
         mock_switch.get_data.return_value,
     ]
-    freezer.tick(30)
-    async_fire_time_changed(hass)
-    await hass.async_block_till_done()
-    assert mock_switch.login.await_count == 2
+    await next_update(hass, freezer, scan_interval)
     assert coordinator.last_update_success
-
-    # Logging in doesn't open a session: no reauth, the polling continues
-    mock_switch.get_data.side_effect = TpLinkSwitchNotLoggedInError
-    freezer.tick(30)
-    async_fire_time_changed(hass)
-    await hass.async_block_till_done()
-    assert mock_switch.login.await_count == 3
-    assert not coordinator.last_update_success
-    assert not hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert mock_switch.login.await_count == 2
 
 
 async def test_update_invalid_auth(
@@ -120,19 +192,42 @@ async def test_update_invalid_auth(
     mock_switch: MagicMock,
 ) -> None:
     """Test rejected credentials while polling start a reauth flow."""
-    mock_config_entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
+    coordinator = await setup_entry(hass, mock_config_entry, scan_interval=600)
 
     mock_switch.get_data.side_effect = TpLinkSwitchNotLoggedInError
     mock_switch.login.side_effect = TpLinkSwitchInvalidAuthError
-    freezer.tick(30)
-    async_fire_time_changed(hass)
-    await hass.async_block_till_done()
+    await next_update(hass, freezer, 600)
 
-    assert not mock_config_entry.runtime_data.last_update_success
+    assert not coordinator.last_update_success
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
     assert [flow["context"]["source"] for flow in flows] == [SOURCE_REAUTH]
+
+
+async def test_update_login_refused(
+    hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
+    mock_config_entry: MockConfigEntry,
+    mock_switch: MagicMock,
+) -> None:
+    """Test a login refused while polling waits for the grace period."""
+    coordinator = await setup_entry(hass, mock_config_entry, scan_interval=120)
+
+    mock_switch.get_data.side_effect = [
+        TpLinkSwitchNotLoggedInError,
+        mock_switch.get_data.return_value,
+    ]
+    mock_switch.login.return_value = False
+    await next_update(hass, freezer, 300)
+    assert not coordinator.last_update_success
+    assert mock_switch.login.await_count == 2
+
+    mock_switch.login.return_value = True
+    await next_update(hass, freezer, 120)
+    assert mock_switch.login.await_count == 2
+    await next_update(hass, freezer, 180)
+    assert coordinator.last_update_success
+    assert mock_switch.login.await_count == 3
+    assert not hass.config_entries.flow.async_progress_by_handler(DOMAIN)
 
 
 async def test_login_refused(

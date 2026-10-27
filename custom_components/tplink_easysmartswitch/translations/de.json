@@ -78,6 +78,9 @@
     },
     "invalid_response": {
       "message": "Unerwartete Antwort des Switches: {error}"
+    },
+    "session_in_use": {
+      "message": "Der Switch erlaubt nur eine Sitzung, die von einer anderen Anmeldung verwendet wird, vermutlich seiner Weboberfläche: nächste Anmeldung um {time}"
     }
   }
 }

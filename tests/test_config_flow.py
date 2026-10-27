@@ -9,6 +9,8 @@ from custom_components.tplink_easysmartswitch.const import DOMAIN
 from custom_components.tplink_easysmartswitch.tplink import (
     TpLinkSwitchCannotConnectError,
     TpLinkSwitchInvalidAuthError,
+    TpLinkSwitchNotLoggedInError,
+    TpLinkSwitchParseError,
 )
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.const import (
@@ -70,6 +72,8 @@ async def test_user_flow_without_password(
     [
         (TpLinkSwitchCannotConnectError, "cannot_connect"),
         (TpLinkSwitchInvalidAuthError, "invalid_auth"),
+        (TpLinkSwitchNotLoggedInError, "not_logged_in"),
+        (TpLinkSwitchParseError, "invalid_response"),
         (RuntimeError, "unknown"),
     ],
 )
@@ -95,6 +99,22 @@ async def test_user_flow_errors(
         result["flow_id"], USER_INPUT
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_user_flow_login_refused(
+    hass: HomeAssistant, mock_switch: MagicMock
+) -> None:
+    """Test a login refused by the switch for another reason than the credentials."""
+    mock_switch.login.return_value = False
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "login_refused"}
+    mock_switch.get_data.assert_not_awaited()
 
 
 async def test_user_flow_already_configured(

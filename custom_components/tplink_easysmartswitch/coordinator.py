@@ -22,11 +22,17 @@ from .tplink import (
     EasySwitch,
     TpLinkSwitchCannotConnectError,
     TpLinkSwitchInvalidAuthError,
+    TpLinkSwitchNotLoggedInError,
+    TpLinkSwitchParseError,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 type TpLinkSwitchConfigEntry = ConfigEntry[TpLinkSwitchCoordinator]
+
+
+class SessionLostError(UpdateFailed):
+    """The switch answered its login page: the session expired or was taken."""
 
 
 def create_switch(hass: HomeAssistant, config: Mapping[str, Any]) -> EasySwitch:
@@ -59,18 +65,25 @@ class TpLinkSwitchCoordinator(DataUpdateCoordinator[dict[Any, Any]]):
 
     async def _async_setup(self) -> None:
         """Log in and read the MAC address and versions of the switch."""
-        await self._async_call(self.controller.login)
+        await self._async_login()
         await self._async_call(self.controller.update_informations)
 
     async def _async_update_data(self) -> dict[Any, Any]:
         """Fetch the statistics of all ports."""
         try:
             return await self._async_call(self.controller.get_data)
-        except ConfigEntryAuthFailed:
+        except SessionLostError:
             # The session on the switch expired: log in again, once
-            _LOGGER.debug("Session expired on %s, logging in", self.controller.host)
-        await self._async_call(self.controller.login)
+            _LOGGER.debug("Session lost on %s, logging in", self.controller.host)
+        await self._async_login()
         return await self._async_call(self.controller.get_data)
+
+    async def _async_login(self) -> None:
+        """Log in the switch."""
+        if not await self._async_call(self.controller.login):
+            raise UpdateFailed(
+                translation_domain=DOMAIN, translation_key="login_refused"
+            )
 
     async def _async_call[T](self, method: Callable[[], Awaitable[T]]) -> T:
         """Call the switch, raising the Home Assistant exceptions."""
@@ -80,9 +93,19 @@ class TpLinkSwitchCoordinator(DataUpdateCoordinator[dict[Any, Any]]):
             raise ConfigEntryAuthFailed(
                 translation_domain=DOMAIN, translation_key="invalid_auth"
             ) from err
+        except TpLinkSwitchNotLoggedInError as err:
+            raise SessionLostError(
+                translation_domain=DOMAIN, translation_key="session_lost"
+            ) from err
         except TpLinkSwitchCannotConnectError as err:
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="cannot_connect",
+                translation_placeholders={"error": str(err)},
+            ) from err
+        except TpLinkSwitchParseError as err:
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="invalid_response",
                 translation_placeholders={"error": str(err)},
             ) from err

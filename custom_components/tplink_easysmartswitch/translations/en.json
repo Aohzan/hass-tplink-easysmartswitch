@@ -29,7 +29,10 @@
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Invalid authentication",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "login_refused": "The switch refused the login, for example because of too many sessions",
+      "not_logged_in": "The switch did not open a session: check the credentials and log out of its web interface",
+      "invalid_response": "Unexpected answer of the switch: model or firmware not supported"
     },
     "abort": {
       "already_configured": "Device is already configured"
@@ -66,6 +69,15 @@
     },
     "invalid_auth": {
       "message": "The switch rejected the credentials"
+    },
+    "login_refused": {
+      "message": "The switch refused the login"
+    },
+    "session_lost": {
+      "message": "The switch closed the session"
+    },
+    "invalid_response": {
+      "message": "Unexpected answer of the switch: {error}"
     }
   }
 }

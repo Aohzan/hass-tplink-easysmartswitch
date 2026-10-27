@@ -29,7 +29,10 @@
     "error": {
       "cannot_connect": "Verbindung fehlgeschlagen",
       "invalid_auth": "Ungültige Authentifizierung",
-      "unknown": "Unerwarteter Fehler"
+      "unknown": "Unerwarteter Fehler",
+      "login_refused": "Der Switch hat die Anmeldung abgelehnt, zum Beispiel wegen zu vieler Sitzungen",
+      "not_logged_in": "Der Switch hat keine Sitzung geöffnet: Anmeldedaten prüfen und von seiner Weboberfläche abmelden",
+      "invalid_response": "Unerwartete Antwort des Switches: Modell oder Firmware nicht unterstützt"
     },
     "abort": {
       "already_configured": "Das Gerät ist bereits eingerichtet"
@@ -66,6 +69,15 @@
     },
     "invalid_auth": {
       "message": "Der Switch hat die Anmeldedaten abgelehnt"
+    },
+    "login_refused": {
+      "message": "Der Switch hat die Anmeldung abgelehnt"
+    },
+    "session_lost": {
+      "message": "Der Switch hat die Sitzung geschlossen"
+    },
+    "invalid_response": {
+      "message": "Unerwartete Antwort des Switches: {error}"
     }
   }
 }

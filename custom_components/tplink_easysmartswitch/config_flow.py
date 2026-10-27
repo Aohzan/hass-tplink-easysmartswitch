@@ -26,7 +26,12 @@ from homeassistant.helpers.selector import (
 
 from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_USERNAME, DOMAIN
 from .coordinator import TpLinkSwitchConfigEntry, create_switch
-from .tplink import TpLinkSwitchCannotConnectError, TpLinkSwitchInvalidAuthError
+from .tplink import (
+    TpLinkSwitchCannotConnectError,
+    TpLinkSwitchInvalidAuthError,
+    TpLinkSwitchNotLoggedInError,
+    TpLinkSwitchParseError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -191,12 +196,19 @@ async def _test_connection(
     """Log in and read the switch, returning the errors of the form."""
     switch = create_switch(hass, config)
     try:
-        await switch.login()
+        if not await switch.login():
+            return {"base": "login_refused"}
+        await switch.update_informations()
         await switch.get_data()
     except TpLinkSwitchInvalidAuthError:
         return {"base": "invalid_auth"}
+    except TpLinkSwitchNotLoggedInError:
+        return {"base": "not_logged_in"}
     except TpLinkSwitchCannotConnectError:
         return {"base": "cannot_connect"}
+    except TpLinkSwitchParseError:
+        _LOGGER.exception("Unexpected answer of the switch")
+        return {"base": "invalid_response"}
     except Exception:
         _LOGGER.exception("Unexpected error while connecting to the switch")
         return {"base": "unknown"}

@@ -1,5 +1,7 @@
 """Base entities of the TP-Link Easy Smart Switch integration."""
 
+from typing import cast
+
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
@@ -22,17 +24,17 @@ class TpLinkSwitchEntity(CoordinatorEntity[TpLinkSwitchCoordinator]):
         """Initialize the entity."""
         super().__init__(coordinator)
         controller = coordinator.controller
-        self._attr_unique_id = slugify(
-            f"{DOMAIN}_{controller.mac_address}_{unique_id_suffix}"
-        )
+        # The setup of the coordinator fails when the switch has no MAC address
+        mac_address = cast(str, controller.mac_address)
+        self._attr_unique_id = slugify(f"{DOMAIN}_{mac_address}_{unique_id_suffix}")
         self._attr_translation_key = translation_key
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, controller.mac_address)},
+            identifiers={(DOMAIN, mac_address)},
             manufacturer="TP-Link",
             model=controller.hardware_version,
             name=f"Switch {controller.host}",
             sw_version=controller.firmware_version,
-            connections={(CONNECTION_NETWORK_MAC, controller.mac_address)},
+            connections={(CONNECTION_NETWORK_MAC, mac_address)},
             configuration_url=f"http://{controller.host}",
         )
 

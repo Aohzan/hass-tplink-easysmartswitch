@@ -18,6 +18,8 @@ from homeassistant.const import (
     CONF_USERNAME,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
@@ -26,7 +28,12 @@ from homeassistant.helpers.selector import (
 
 from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_USERNAME, DOMAIN
 from .coordinator import TpLinkSwitchConfigEntry, create_switch
-from .tplink import TpLinkSwitchCannotConnectError, TpLinkSwitchInvalidAuthError
+from .tplink import (
+    TpLinkSwitchCannotConnectError,
+    TpLinkSwitchInvalidAuthError,
+    TpLinkSwitchNotLoggedInError,
+    TpLinkSwitchParseError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +76,20 @@ def _unique_id(host: str) -> str:
     return f"{DOMAIN}_{host}"
 
 
+def _default_title(host: str) -> str:
+    """Return the default title of the config entry of a switch."""
+    return f"Switch {host}"
+
+
+def _configured_mac(hass: HomeAssistant, entry: TpLinkSwitchConfigEntry) -> str | None:
+    """Return the MAC address of the device of a config entry, if set up once."""
+    for device in dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id):
+        for domain, identifier in device.identifiers:
+            if domain == DOMAIN:
+                return identifier
+    return None
+
+
 class TpLinkSwitchConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a TP-Link Easy Smart Switch config flow."""
 
@@ -89,10 +110,10 @@ class TpLinkSwitchConfigFlow(ConfigFlow, domain=DOMAIN):
                 # The frontend doesn't send an empty password
                 CONF_PASSWORD: user_input.get(CONF_PASSWORD, ""),
             }
-            errors = await _test_connection(self.hass, data)
+            errors, _ = await _test_connection(self.hass, data)
             if not errors:
                 return self.async_create_entry(
-                    title=f"Switch {user_input[CONF_HOST]}",
+                    title=_default_title(user_input[CONF_HOST]),
                     data=data,
                     options={CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL]},
                 )
@@ -117,7 +138,7 @@ class TpLinkSwitchConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             user_input.setdefault(CONF_PASSWORD, "")
-            errors = await _test_connection(self.hass, {**entry.data, **user_input})
+            errors, _ = await _test_connection(self.hass, {**entry.data, **user_input})
             if not errors:
                 return self.async_update_reload_and_abort(
                     entry, data_updates=user_input
@@ -144,10 +165,22 @@ class TpLinkSwitchConfigFlow(ConfigFlow, domain=DOMAIN):
             if unique_id != entry.unique_id:
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
-            errors = await _test_connection(self.hass, {**entry.data, **user_input})
+            errors, mac = await _test_connection(
+                self.hass, {**entry.data, **user_input}
+            )
             if not errors:
+                # The unique ID is the address: compare the MAC addresses, so
+                # the entities of another switch don't replace these ones
+                configured_mac = _configured_mac(self.hass, entry)
+                if configured_mac and (
+                    mac is None or format_mac(mac) != format_mac(configured_mac)
+                ):
+                    return self.async_abort(reason="wrong_device")
+                title = entry.title
+                if title == _default_title(entry.data[CONF_HOST]):
+                    title = _default_title(user_input[CONF_HOST])
                 return self.async_update_reload_and_abort(
-                    entry, unique_id=unique_id, data_updates=user_input
+                    entry, unique_id=unique_id, title=title, data_updates=user_input
                 )
 
         return self.async_show_form(
@@ -187,17 +220,24 @@ class TpLinkSwitchOptionsFlowHandler(OptionsFlowWithReload):
 
 async def _test_connection(
     hass: HomeAssistant, config: Mapping[str, Any]
-) -> dict[str, str]:
-    """Log in and read the switch, returning the errors of the form."""
+) -> tuple[dict[str, str], str | None]:
+    """Log in and read the switch, returning the errors of the form and its MAC."""
     switch = create_switch(hass, config)
     try:
-        await switch.login()
+        if not await switch.login():
+            return {"base": "login_refused"}, None
+        await switch.update_informations()
         await switch.get_data()
     except TpLinkSwitchInvalidAuthError:
-        return {"base": "invalid_auth"}
+        return {"base": "invalid_auth"}, None
+    except TpLinkSwitchNotLoggedInError:
+        return {"base": "not_logged_in"}, None
     except TpLinkSwitchCannotConnectError:
-        return {"base": "cannot_connect"}
+        return {"base": "cannot_connect"}, None
+    except TpLinkSwitchParseError:
+        _LOGGER.exception("Unexpected answer of the switch")
+        return {"base": "invalid_response"}, None
     except Exception:
         _LOGGER.exception("Unexpected error while connecting to the switch")
-        return {"base": "unknown"}
-    return {}
+        return {"base": "unknown"}, None
+    return {}, switch.mac_address

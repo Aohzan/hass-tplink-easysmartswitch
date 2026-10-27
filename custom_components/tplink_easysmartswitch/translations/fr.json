@@ -29,10 +29,14 @@
     "error": {
       "cannot_connect": "Impossible de se connecter",
       "invalid_auth": "Authentification invalide",
-      "unknown": "Erreur inconnue"
+      "unknown": "Erreur inconnue",
+      "login_refused": "Le switch a refusé la connexion, par exemple à cause d'un trop grand nombre de sessions",
+      "not_logged_in": "Le switch n'a pas ouvert de session : vérifiez les identifiants et déconnectez-vous de son interface web",
+      "invalid_response": "Réponse inattendue du switch : modèle ou firmware non supporté"
     },
     "abort": {
-      "already_configured": "Appareil déjà configuré"
+      "already_configured": "Appareil déjà configuré",
+      "wrong_device": "Le switch à cette adresse n'est pas le switch configuré"
     }
   },
   "options": {
@@ -66,6 +70,18 @@
     },
     "invalid_auth": {
       "message": "Le switch a refusé les identifiants"
+    },
+    "login_refused": {
+      "message": "Le switch a refusé la connexion"
+    },
+    "session_lost": {
+      "message": "Le switch a fermé la session"
+    },
+    "invalid_response": {
+      "message": "Réponse inattendue du switch : {error}"
+    },
+    "session_in_use": {
+      "message": "Le switch n'accepte qu'une session, utilisée par une autre connexion, probablement son interface web : prochaine connexion à {time}"
     }
   }
 }

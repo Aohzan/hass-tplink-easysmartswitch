@@ -3,7 +3,7 @@
 This a _custom component_ for [Home Assistant](https://www.home-assistant.io/).
 The `tplink_easysmartswitch` integration allows you to get port information from [TP-Link Easy Smart Switch](https://www.tp-link.com/fr/business-networking/easy-smart-switch/).
 
-You will get two sensors by input enabled with all attributes availables.
+You will get two sensors by input enabled with all attributes availables, and a button to restart the switch.
 
 ## Installation
 

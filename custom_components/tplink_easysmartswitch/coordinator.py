@@ -107,6 +107,18 @@ class TpLinkSwitchCoordinator(DataUpdateCoordinator[dict[Any, Any]]):
         self._session_alive_at = dt_util.utcnow()
         return data
 
+    async def async_reboot(self) -> None:
+        """Reboot the switch, taking its session if another login has it."""
+        try:
+            await self._async_call(self.controller.reboot)
+        except SessionLostError:
+            await self._async_login()
+            await self._async_call(self.controller.reboot)
+        # The reboot closes every session: the next update logs in again,
+        # without taking the lost session for a login in the web interface
+        self._session_alive_at = None
+        self._login_after = None
+
     async def _async_login(self) -> None:
         """Log in the switch."""
         if not await self._async_call(self.controller.login):

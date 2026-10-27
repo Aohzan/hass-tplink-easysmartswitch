@@ -6,7 +6,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "tplink_easysmartswitch"
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
 
 DEFAULT_SCAN_INTERVAL = 30
 DEFAULT_USERNAME = "admin"

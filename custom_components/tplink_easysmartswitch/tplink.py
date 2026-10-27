@@ -129,14 +129,27 @@ class EasySwitch:
         The switch answers its login page, with a 200 status, when the session
         expired or was taken by another login: the page must contain the marker.
         """
+        text = await self._request("get", page)
+        if marker not in text:
+            raise TpLinkSwitchNotLoggedInError(f"No {marker} in {page}")
+        return BeautifulSoup(text, "html.parser")
+
+    async def _request(
+        self, method: str, page: str, data: dict[str, str] | None = None
+    ) -> str:
+        """Request a page of the switch and return its text."""
         headers = {
             "Referer": f"{self._url}/",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Upgrade-Insecure-Requests": "1",
         }
         try:
-            async with self._session.get(  # type: ignore[union-attr]
-                f"{self._url}/{page}", headers=headers, timeout=self._timeout
+            async with self._session.request(  # type: ignore[union-attr]
+                method,
+                f"{self._url}/{page}",
+                data=data,
+                headers=headers,
+                timeout=self._timeout,
             ) as response:
                 if response.status in AUTH_ERROR_STATUSES:
                     raise TpLinkSwitchInvalidAuthError(f"HTTP error {response.status}")
@@ -144,14 +157,11 @@ class EasySwitch:
                     raise TpLinkSwitchCannotConnectError(
                         f"HTTP error {response.status}"
                     )
-                text = await response.text()
+                return await response.text()
         except TimeoutError as exception:
             raise TpLinkSwitchCannotConnectError("Timeout error") from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
             raise TpLinkSwitchCannotConnectError(exception) from exception
-        if marker not in text:
-            raise TpLinkSwitchNotLoggedInError(f"No {marker} in {page}")
-        return BeautifulSoup(text, "html.parser")
 
     async def update_informations(self) -> None:
         """Get switch information."""
@@ -262,6 +272,16 @@ class EasySwitch:
                 TPLINK_PORT_RX_BAD_PKT: _counter(e5[((port - 1) * 4) + 3]),
             }
         return states
+
+    async def reboot(self) -> None:
+        """Reboot the switch, without saving its configuration."""
+        text = await self._request(
+            "post",
+            "reboot.cgi",
+            data={"reboot_op": "reboot", "save_op": "false"},
+        )
+        if LOGON_INFO.search(text):
+            raise TpLinkSwitchNotLoggedInError("Login page answered to reboot.cgi")
 
     async def close(self) -> None:
         """Close open client session."""

@@ -18,7 +18,7 @@ from .const import (
     TPLINK_PORT_TX_GOOD_PKT,
 )
 from .coordinator import TpLinkSwitchConfigEntry, TpLinkSwitchCoordinator
-from .entity import TpLinkSwitchEntity
+from .entity import TpLinkSwitchPortEntity
 
 PARALLEL_UPDATES = 0
 
@@ -65,7 +65,7 @@ async def async_setup_entry(
     )
 
 
-class TpLinkSpeedSensor(TpLinkSwitchEntity, SensorEntity):
+class TpLinkSpeedSensor(TpLinkSwitchPortEntity, SensorEntity):
     """Packets per second received or sent by a port."""
 
     entity_description: TpLinkSpeedSensorEntityDescription

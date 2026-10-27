@@ -1,4 +1,4 @@
-"""Base entity of the TP-Link Easy Smart Switch integration."""
+"""Base entities of the TP-Link Easy Smart Switch integration."""
 
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -9,26 +9,23 @@ from .coordinator import TpLinkSwitchCoordinator
 
 
 class TpLinkSwitchEntity(CoordinatorEntity[TpLinkSwitchCoordinator]):
-    """Base entity of a port of the switch."""
+    """Base entity of the switch."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
         coordinator: TpLinkSwitchCoordinator,
-        port_number: int,
         unique_id_suffix: str,
-        translation_key: str,
+        translation_key: str | None = None,
     ) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
         controller = coordinator.controller
-        self._port_number = port_number
         self._attr_unique_id = slugify(
             f"{DOMAIN}_{controller.mac_address}_{unique_id_suffix}"
         )
         self._attr_translation_key = translation_key
-        self._attr_translation_placeholders = {"port": f"{port_number:02}"}
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, controller.mac_address)},
             manufacturer="TP-Link",
@@ -38,3 +35,19 @@ class TpLinkSwitchEntity(CoordinatorEntity[TpLinkSwitchCoordinator]):
             connections={(CONNECTION_NETWORK_MAC, controller.mac_address)},
             configuration_url=f"http://{controller.host}",
         )
+
+
+class TpLinkSwitchPortEntity(TpLinkSwitchEntity):
+    """Base entity of a port of the switch."""
+
+    def __init__(
+        self,
+        coordinator: TpLinkSwitchCoordinator,
+        port_number: int,
+        unique_id_suffix: str,
+        translation_key: str,
+    ) -> None:
+        """Initialize the entity."""
+        super().__init__(coordinator, unique_id_suffix, translation_key)
+        self._port_number = port_number
+        self._attr_translation_placeholders = {"port": f"{port_number:02}"}

@@ -11,11 +11,19 @@ from homeassistant.components.sensor import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import TIMESTAMP, TPLINK_PORT_RX_GOOD_PKT, TPLINK_PORT_TX_GOOD_PKT
+from .const import (
+    TIMESTAMP,
+    TPLINK_COUNTER_MODULO,
+    TPLINK_PORT_RX_GOOD_PKT,
+    TPLINK_PORT_TX_GOOD_PKT,
+)
 from .coordinator import TpLinkSwitchConfigEntry, TpLinkSwitchCoordinator
 from .entity import TpLinkSwitchEntity
 
 PARALLEL_UPDATES = 0
+
+# Packets per second of a gigabit port sending its smallest frames
+MAX_PACKET_RATE = 1_488_096
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -76,7 +84,7 @@ class TpLinkSpeedSensor(TpLinkSwitchEntity, SensorEntity):
             translation_key=description.key,
         )
         self.entity_description = description
-        self._last_value: float | None = None
+        self._last_value: int | None = None
         self._last_timestamp: datetime | None = None
         # The first value is the reference of the next update
         self._update_speed()
@@ -93,24 +101,27 @@ class TpLinkSpeedSensor(TpLinkSwitchEntity, SensorEntity):
         if port_data is None or port_data.get(self.entity_description.counter) is None:
             self._attr_native_value = None
             return
-        current_value = float(port_data[self.entity_description.counter])
+        current_value = int(port_data[self.entity_description.counter])
         current_timestamp = self.coordinator.data[TIMESTAMP]
 
-        if (
-            self._last_value is None
-            or self._last_timestamp is None
-            or current_value < self._last_value
-        ):
-            # First value, or counter reset by a restart or an overflow
+        if self._last_value is None or self._last_timestamp is None:
+            # First value
             self._attr_native_value = None
         else:
             delta_time = (current_timestamp - self._last_timestamp).total_seconds()
             if delta_time <= 0:
                 # Same data as the previous update
                 return
-            self._attr_native_value = round(
-                (current_value - self._last_value) / delta_time, 2
-            )
+            # A lower value is a counter that wrapped around, unless the
+            # packets since the previous value exceed the line rate: the
+            # counter was then reset by a restart of the switch
+            speed = (
+                (current_value - self._last_value) % TPLINK_COUNTER_MODULO
+            ) / delta_time
+            if current_value < self._last_value and speed > MAX_PACKET_RATE:
+                self._attr_native_value = None
+            else:
+                self._attr_native_value = round(speed, 2)
 
         self._last_value = current_value
         self._last_timestamp = current_timestamp

@@ -11,6 +11,7 @@ from homeassistant.util.dt import utcnow
 
 from .const import (
     TIMESTAMP,
+    TPLINK_COUNTER_MODULO,
     TPLINK_PORT_LINK_STATUS,
     TPLINK_PORT_RX_BAD_PKT,
     TPLINK_PORT_RX_GOOD_PKT,
@@ -255,10 +256,10 @@ class EasySwitch:
             states[port] = {  # type: ignore
                 TPLINK_PORT_STATE: TPLINK_STATE[e3[port - 1]],
                 TPLINK_PORT_LINK_STATUS: TPLINK_STATUS[e4[port - 1]],
-                TPLINK_PORT_TX_GOOD_PKT: e5[((port - 1) * 4)],
-                TPLINK_PORT_TX_BAD_PKT: e5[((port - 1) * 4) + 1],
-                TPLINK_PORT_RX_GOOD_PKT: e5[((port - 1) * 4) + 2],
-                TPLINK_PORT_RX_BAD_PKT: e5[((port - 1) * 4) + 3],
+                TPLINK_PORT_TX_GOOD_PKT: _counter(e5[((port - 1) * 4)]),
+                TPLINK_PORT_TX_BAD_PKT: _counter(e5[((port - 1) * 4) + 1]),
+                TPLINK_PORT_RX_GOOD_PKT: _counter(e5[((port - 1) * 4) + 2]),
+                TPLINK_PORT_RX_BAD_PKT: _counter(e5[((port - 1) * 4) + 3]),
             }
         return states
 
@@ -274,6 +275,11 @@ class EasySwitch:
     async def __aexit__(self, *_exc_info) -> None:
         """Async exit."""
         await self.close()
+
+
+def _counter(value: str) -> str:
+    """Return the unsigned value of a packet counter sent as a signed integer."""
+    return str(int(value) % TPLINK_COUNTER_MODULO)
 
 
 class TpLinkSwitchError(Exception):

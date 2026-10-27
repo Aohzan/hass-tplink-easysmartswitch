@@ -99,6 +99,18 @@ def switch(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> EasySwit
     )
 
 
+async def test_get_data_unsigned_counters(
+    switch: EasySwitch, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Test the counters sent as negative signed integers are made unsigned."""
+    aioclient_mock.get(
+        f"{URL}/PortStatisticsRpm.htm",
+        text=PORT_STATISTICS.replace("pkts:[10,", "pkts:[-1775203939,"),
+    )
+    data = await switch.get_data()
+    assert data[1]["TxGoodPkt"] == "2519763357"
+
+
 async def test_login(switch: EasySwitch, aioclient_mock: AiohttpClientMocker) -> None:
     """Test the credentials are posted to the switch."""
     aioclient_mock.post(f"{URL}/logon.cgi")

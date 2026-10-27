@@ -112,6 +112,11 @@ async def test_speed(
     await update(rx_good="400")
     assert hass.states.get(INGRESS).state == "10.0"
 
+    # Counter wrapped around its 32 bits
+    await update(rx_good="4294967000")
+    await update(rx_good="304")
+    assert hass.states.get(INGRESS).state == "20.0"
+
 
 async def test_missing_port(
     hass: HomeAssistant,

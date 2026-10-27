@@ -26,6 +26,8 @@ TPLINK_STATUS = {
     "6": "1000M Full",
 }
 TPLINK_STATE = {"0": "Disabled", "1": "Enabled"}
+# The switch counts the packets on 32 bits, and sends them as signed integers
+TPLINK_COUNTER_MODULO = 1 << 32
 
 TPLINK_PORT_STATE = "state"
 TPLINK_PORT_LINK_STATUS = "link_status"

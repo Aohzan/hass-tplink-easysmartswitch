@@ -1,6 +1,7 @@
 {
   "domain": "tplink_easysmartswitch",
   "name": "TP-Link Easy Smart Switch",
+  "categories": ["computers_network.routers_network"],
   "codeowners": ["@Aohzan"],
   "config_flow": true,
   "dependencies": [],

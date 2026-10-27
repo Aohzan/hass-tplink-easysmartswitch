@@ -243,12 +243,14 @@ async def test_get_data_unexpected_page(
         "<script>var a = 1;</script><script>macStr:[\n]</script>",
         # Empty MAC address
         '<script>var info_ds = {\nmacStr:[\n""\n]\n};</script>',
+        # No value after the name
+        "<script>var macStr</script>",
     ],
 )
-async def test_update_informations_without_mac(
+async def test_update_informations_unexpected_page(
     switch: EasySwitch, aioclient_mock: AiohttpClientMocker, page: str
 ) -> None:
-    """Test the MAC address is required."""
+    """Test the MAC address is required, and parsing errors."""
     aioclient_mock.get(f"{URL}/SystemInfoRpm.htm", text=page)
     with pytest.raises(TpLinkSwitchParseError):
         await switch.update_informations()

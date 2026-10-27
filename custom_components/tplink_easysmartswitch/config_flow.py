@@ -62,7 +62,7 @@ class TpLinkSwitchConfigFlow(ConfigFlow, domain=DOMAIN):
         switch = EasySwitch(
             user_input[CONF_HOST],
             user_input[CONF_USERNAME],
-            user_input[CONF_PASSWORD],
+            user_input.get(CONF_PASSWORD, ""),
             session=session,
         )
 
@@ -76,7 +76,7 @@ class TpLinkSwitchConfigFlow(ConfigFlow, domain=DOMAIN):
         except TpLinkSwitchInvalidAuthError:
             errors["base"] = "invalid_auth"
         except TpLinkSwitchCannotConnectError:
-            errors["base"] = "connect_error"
+            errors["base"] = "cannot_connect"
         return self.async_show_form(
             step_id="user", data_schema=BASE_SCHEMA, errors=errors
         )
@@ -118,7 +118,7 @@ class TpLinkSwitchOptionsFlowHandler(OptionsFlow):
         switch = EasySwitch(
             self.config_entry.data[CONF_HOST],
             user_input[CONF_USERNAME],
-            user_input[CONF_PASSWORD],
+            user_input.get(CONF_PASSWORD, ""),
             session=session,
         )
         try:
@@ -131,7 +131,7 @@ class TpLinkSwitchOptionsFlowHandler(OptionsFlow):
         except TpLinkSwitchInvalidAuthError:
             errors["base"] = "invalid_auth"
         except TpLinkSwitchCannotConnectError:
-            errors["base"] = "connect_error"
+            errors["base"] = "cannot_connect"
         return self.async_show_form(
             step_id="init", data_schema=BASE_SCHEMA, errors=errors
         )

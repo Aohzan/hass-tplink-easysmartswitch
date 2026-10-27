@@ -1,0 +1,39 @@
+# serializer version: 1
+# name: test_diagnostics
+  dict({
+    'data': dict({
+      '1': dict({
+        'RxBadPkt': '2',
+        'RxGoodPkt': '2000',
+        'TxBadPkt': '1',
+        'TxGoodPkt': '1000',
+        'link_status': '1000M Full',
+        'state': 'Enabled',
+      }),
+      '2': dict({
+        'RxBadPkt': '2',
+        'RxGoodPkt': '0',
+        'TxBadPkt': '1',
+        'TxGoodPkt': '0',
+        'link_status': 'Link Down',
+        'state': 'Enabled',
+      }),
+      'timestamp': '2026-10-27T12:00:00+00:00',
+    }),
+    'device': dict({
+      'firmware_version': '1.0.0 Build 20171214 Rel.70905',
+      'hardware_version': 'TL-SG108E 3.0',
+      'port_number': 2,
+    }),
+    'entry': dict({
+      'data': dict({
+        'host': '192.168.1.2',
+        'password': '**REDACTED**',
+        'username': '**REDACTED**',
+      }),
+      'options': dict({
+        'scan_interval': 30,
+      }),
+    }),
+  })
+# ---

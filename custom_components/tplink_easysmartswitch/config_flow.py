@@ -4,7 +4,7 @@ from collections.abc import Mapping
 import logging
 from typing import Any
 
-import voluptuous as vol
+import probatio
 
 from homeassistant.config_entries import (
     ConfigFlow,
@@ -43,28 +43,28 @@ USERNAME_SELECTOR = TextSelector(
 PASSWORD_SELECTOR = TextSelector(
     TextSelectorConfig(type=TextSelectorType.PASSWORD, autocomplete="current-password")
 )
-SCAN_INTERVAL_VALIDATOR = vol.All(int, vol.Range(min=1))
+SCAN_INTERVAL_VALIDATOR = probatio.All(int, probatio.Range(min=1))
 
-USER_SCHEMA = vol.Schema(
+USER_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_HOST): str,
-        vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): USERNAME_SELECTOR,
-        vol.Optional(CONF_PASSWORD): PASSWORD_SELECTOR,
-        vol.Required(
+        probatio.Required(CONF_HOST): str,
+        probatio.Required(CONF_USERNAME, default=DEFAULT_USERNAME): USERNAME_SELECTOR,
+        probatio.Optional(CONF_PASSWORD): PASSWORD_SELECTOR,
+        probatio.Required(
             CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
         ): SCAN_INTERVAL_VALIDATOR,
     }
 )
-CREDENTIALS_SCHEMA = vol.Schema(
+CREDENTIALS_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_USERNAME): USERNAME_SELECTOR,
-        vol.Optional(CONF_PASSWORD): PASSWORD_SELECTOR,
+        probatio.Required(CONF_USERNAME): USERNAME_SELECTOR,
+        probatio.Optional(CONF_PASSWORD): PASSWORD_SELECTOR,
     }
 )
-RECONFIGURE_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
-OPTIONS_SCHEMA = vol.Schema(
+RECONFIGURE_SCHEMA = probatio.Schema({probatio.Required(CONF_HOST): str})
+OPTIONS_SCHEMA = probatio.Schema(
     {
-        vol.Required(
+        probatio.Required(
             CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
         ): SCAN_INTERVAL_VALIDATOR,
     }

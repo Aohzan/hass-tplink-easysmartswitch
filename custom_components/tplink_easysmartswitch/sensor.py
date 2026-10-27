@@ -1,9 +1,10 @@
 """Support for the TP-Link Easy Smart Switch."""
+from datetime import datetime
 import logging
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
@@ -69,7 +70,7 @@ class TpLinkSpeedSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._last_value: float | None = None
-        self._last_timestamp = None
+        self._last_timestamp: datetime | None = None
 
         self.controller = controller
         self._port_number = port_number
@@ -91,34 +92,35 @@ class TpLinkSpeedSensor(CoordinatorEntity, SensorEntity):
             )
         )
         self._attr_device_info = get_device_info(self.controller)
-        self._state = None
+        # The first value is the reference of the next update
+        self._update_speed()
 
-    def _has_overflowed(self, current_value) -> bool:
-        """Check if value has overflowed."""
-        return current_value < self._last_value
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Compute the speed from the new counter value."""
+        self._update_speed()
+        super()._handle_coordinator_update()
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the state."""
-        current_value = float(self.coordinator.data[self._port_number][self._attribute])
-        if current_value is None:
-            return None
+    def _update_speed(self) -> None:
+        """Derive the speed from the packet counter since the previous update."""
+        port_data = self.coordinator.data.get(self._port_number)
+        if port_data is None or port_data.get(self._attribute) is None:
+            self._attr_native_value = None
+            return
+        current_value = float(port_data[self._attribute])
         current_timestamp = self.coordinator.data[TIMESTAMP]
-        if self._last_value is None or self._has_overflowed(current_value):
-            self._last_value = current_value
-            self._last_timestamp = current_timestamp
-            return None
 
-        # Calculate derivative.
-        delta_value = current_value - self._last_value
-        delta_time = current_timestamp - self._last_timestamp
-        if delta_time.total_seconds() == 0:
-            # Prevent division by 0.
-            return None
-        derived = delta_value / delta_time.total_seconds()
+        if self._last_value is None or current_value < self._last_value:
+            # First value, or counter reset by a restart or an overflow
+            self._attr_native_value = None
+        else:
+            delta_time = (current_timestamp - self._last_timestamp).total_seconds()
+            if delta_time <= 0:
+                # Same data as the previous update
+                return
+            self._attr_native_value = round(
+                (current_value - self._last_value) / delta_time, 2
+            )
 
-        # Store current values for future use.
         self._last_value = current_value
         self._last_timestamp = current_timestamp
-
-        return round(derived, 2)

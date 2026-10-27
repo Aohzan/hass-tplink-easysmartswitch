@@ -18,10 +18,10 @@ TIMESTAMP = "timestamp"
 
 TPLINK_STATUS = {
     "0": "Link Down",
-    "1": "LS 1",
+    "1": "Auto",
     "2": "10M Half",
     "3": "10M Full",
-    "4": "LS 4",
+    "4": "100M Half",
     "5": "100M Full",
     "6": "1000M Full",
 }

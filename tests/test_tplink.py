@@ -161,24 +161,33 @@ async def test_login_refused(
     assert not await switch.login()
 
 
-@pytest.mark.parametrize(
-    ("status", "exception"),
-    [
-        (401, TpLinkSwitchInvalidAuthError),
-        (403, TpLinkSwitchInvalidAuthError),
-        (404, TpLinkSwitchCannotConnectError),
-        (500, TpLinkSwitchCannotConnectError),
-    ],
-)
-async def test_login_http_errors(
-    switch: EasySwitch,
-    aioclient_mock: AiohttpClientMocker,
-    status: int,
-    exception: type[Exception],
+@pytest.mark.parametrize("status", [200, 401, 403])
+async def test_login_status_ignored(
+    switch: EasySwitch, aioclient_mock: AiohttpClientMocker, status: int
 ) -> None:
-    """Test only 401 and 403 on logon.cgi are authentication errors."""
+    """Test the switch answering 401 to a successful login, as a real switch does."""
+    aioclient_mock.post(
+        f"{URL}/logon.cgi", status=status, text=LOGIN_PAGE.format(code=0)
+    )
+    assert await switch.login()
+
+
+async def test_login_401_wrong_credentials(
+    switch: EasySwitch, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Test the logonInfo code decides when the switch answers 401."""
+    aioclient_mock.post(f"{URL}/logon.cgi", status=401, text=LOGIN_PAGE.format(code=1))
+    with pytest.raises(TpLinkSwitchInvalidAuthError):
+        await switch.login()
+
+
+@pytest.mark.parametrize("status", [404, 500, 503])
+async def test_login_http_errors(
+    switch: EasySwitch, aioclient_mock: AiohttpClientMocker, status: int
+) -> None:
+    """Test the other HTTP errors of logon.cgi are connection errors."""
     aioclient_mock.post(f"{URL}/logon.cgi", status=status)
-    with pytest.raises(exception):
+    with pytest.raises(TpLinkSwitchCannotConnectError):
         await switch.login()
 
 

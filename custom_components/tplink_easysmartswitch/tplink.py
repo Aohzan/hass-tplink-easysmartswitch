@@ -100,9 +100,9 @@ class EasySwitch:
                 headers=headers,
                 timeout=self._timeout,
             ) as response:
-                if response.status in AUTH_ERROR_STATUSES:
-                    raise TpLinkSwitchInvalidAuthError(f"HTTP error {response.status}")
-                if response.status >= 400:
+                # The switch answers 401 even to a successful login: only the
+                # logonInfo code of the answer tells whether it was accepted
+                if response.status >= 400 and response.status not in (401, 403):
                     raise TpLinkSwitchCannotConnectError(
                         f"HTTP error {response.status}"
                     )

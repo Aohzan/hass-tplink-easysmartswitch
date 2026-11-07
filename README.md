@@ -7,11 +7,21 @@ You will get two sensors by input enabled with all attributes availables, and a 
 
 ## Installation
 
+### Marketplace
+
+[![Open your Home Assistant instance and open this repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Aohzan&repository=hass-tplink-easysmartswitch&category=integration)
+
+Settings > Marketplace > Add from link > `Aohzan/hass-tplink-easysmartswitch` > Add, then Install.
+
+### Manually
+
 Copy the `custom_components/tplink_easysmartswitch` folder into the config folder.
 
 ## Configuration
 
-Go to Configuration >> Integrations in the UI, click the button with + sign and from the list of integrations select TP-Link Easy Smart Switch.
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=tplink_easysmartswitch)
+
+Or go to Settings > Devices & services > Add integration and select TP-Link Easy Smart Switch.
 
 ## Web interface of the switch
 

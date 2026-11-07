@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.0](https://github.com/Aohzan/hass-tplink-easysmartswitch/compare/1.6.0...1.7.0) (2026-11-07)
+
+### Features
+
+* require Home Assistant 2026.11 ([c85e6aa](https://github.com/Aohzan/hass-tplink-easysmartswitch/commit/c85e6aa7adf95a871fc001b95b83f28f2ab6da8c))
+
 ## [1.6.0](https://github.com/Aohzan/hass-tplink-easysmartswitch/compare/1.5.0...1.6.0) (2026-10-27)
 
 ### Features

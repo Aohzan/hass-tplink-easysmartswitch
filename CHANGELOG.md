@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.1](https://github.com/Aohzan/hass-tplink-easysmartswitch/compare/1.7.0...1.7.1) (2026-11-23)
+
+### Bug Fixes
+
+* keep the session cookie of the switches since their 2023 firmware ([#14](https://github.com/Aohzan/hass-tplink-easysmartswitch/issues/14)) ([2901825](https://github.com/Aohzan/hass-tplink-easysmartswitch/commit/2901825dacfcd4e3b1803d980f6e721e73a0d13b))
+
 ## [1.7.0](https://github.com/Aohzan/hass-tplink-easysmartswitch/compare/1.6.0...1.7.0) (2026-11-07)
 
 ### Features

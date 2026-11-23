@@ -27,8 +27,9 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_USERNAME, DOMAIN
-from .coordinator import TpLinkSwitchConfigEntry, create_switch
+from .coordinator import TpLinkSwitchConfigEntry, create_session, create_switch
 from .tplink import (
+    EasySwitch,
     TpLinkSwitchCannotConnectError,
     TpLinkSwitchInvalidAuthError,
     TpLinkSwitchNotLoggedInError,
@@ -222,7 +223,16 @@ async def _test_connection(
     hass: HomeAssistant, config: Mapping[str, Any]
 ) -> tuple[dict[str, str], str | None]:
     """Log in and read the switch, returning the errors of the form and its MAC."""
-    switch = create_switch(hass, config)
+    # A session for this test only, released whatever its result
+    session = create_session(hass, auto_cleanup=False)
+    try:
+        return await _read_switch(create_switch(hass, config, session))
+    finally:
+        session.detach()
+
+
+async def _read_switch(switch: EasySwitch) -> tuple[dict[str, str], str | None]:
+    """Log in and read the switch, returning the errors of the form and its MAC."""
     try:
         if not await switch.login():
             return {"base": "login_refused"}, None

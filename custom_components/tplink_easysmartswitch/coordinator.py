@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import logging
 from typing import Any
 
+import aiohttp
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
@@ -14,7 +16,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -36,13 +38,34 @@ class SessionLostError(UpdateFailed):
     """The switch answered its login page: the session expired or was taken."""
 
 
-def create_switch(hass: HomeAssistant, config: Mapping[str, Any]) -> EasySwitch:
+def create_session(
+    hass: HomeAssistant, *, auto_cleanup: bool = True
+) -> aiohttp.ClientSession:
+    """Return a client session of its own for a switch.
+
+    The firmwares since 2023 keep the login in a session cookie (H_P_SSID):
+    accept it although the switch is usually reached by its IP address, which
+    the cookie jar of the shared session refuses.
+    """
+    return async_create_clientsession(
+        hass,
+        verify_ssl=False,
+        auto_cleanup=auto_cleanup,
+        cookie_jar=aiohttp.CookieJar(unsafe=True),
+    )
+
+
+def create_switch(
+    hass: HomeAssistant,
+    config: Mapping[str, Any],
+    session: aiohttp.ClientSession | None = None,
+) -> EasySwitch:
     """Return the client of the switch of the given connection settings."""
     return EasySwitch(
         config[CONF_HOST],
         config[CONF_USERNAME],
         config[CONF_PASSWORD],
-        session=async_get_clientsession(hass, verify_ssl=False),
+        session=session or create_session(hass),
     )
 
 

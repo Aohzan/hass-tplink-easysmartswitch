@@ -1,12 +1,17 @@
 """Tests of the client of the TP-Link Easy Smart Switch."""
 
+from collections.abc import Awaitable, Callable
+
 import aiohttp
+from aiohttp import web
+from aiohttp.test_utils import TestServer
 import pytest
 from pytest_homeassistant.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
 from custom_components.tplink_easysmartswitch.const import TIMESTAMP
+from custom_components.tplink_easysmartswitch.coordinator import create_switch
 from custom_components.tplink_easysmartswitch.tplink import (
     EasySwitch,
     TpLinkSwitchCannotConnectError,
@@ -14,6 +19,7 @@ from custom_components.tplink_easysmartswitch.tplink import (
     TpLinkSwitchNotLoggedInError,
     TpLinkSwitchParseError,
 )
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -135,9 +141,10 @@ async def test_login(switch: EasySwitch, aioclient_mock: AiohttpClientMocker) ->
     aioclient_mock.post(f"{URL}/logon.cgi")
     assert await switch.login()
     assert aioclient_mock.mock_calls[0][2] == {
-        "logon": "Login",
         "username": "admin",
         "password": "secret",
+        "cpassword": "",
+        "logon": "Login",
     }
 
 
@@ -310,3 +317,47 @@ async def test_connection_errors(
         await switch.login()
     with pytest.raises(TpLinkSwitchCannotConnectError):
         await switch.update_informations()
+
+
+@pytest.mark.usefixtures("socket_enabled")
+async def test_session_cookie(hass: HomeAssistant) -> None:
+    """Test the session cookie of the switch is kept although set by an IP address.
+
+    The firmwares since 2023 answer the login page to the requests without the
+    cookie set by logon.cgi.
+    """
+    cookie = "tplink_0123456789abcdef"
+
+    async def logon(request: web.Request) -> web.Response:
+        response = web.Response(text=LOGIN_PAGE.format(code=0))
+        response.set_cookie("H_P_SSID", cookie, max_age=600)
+        return response
+
+    def page(text: str) -> Callable[[web.Request], Awaitable[web.Response]]:
+        async def handler(request: web.Request) -> web.Response:
+            if request.cookies.get("H_P_SSID") != cookie:
+                return web.Response(text=LOGIN_PAGE.format(code=0))
+            return web.Response(text=text)
+
+        return handler
+
+    app = web.Application()
+    app.router.add_post("/logon.cgi", logon)
+    app.router.add_get("/SystemInfoRpm.htm", page(SYSTEM_INFO))
+    app.router.add_get("/PortStatisticsRpm.htm", page(PORT_STATISTICS))
+    async with TestServer(app, host="127.0.0.1") as server:
+        switch = create_switch(
+            hass,
+            {
+                CONF_HOST: f"127.0.0.1:{server.port}",
+                CONF_USERNAME: "admin",
+                CONF_PASSWORD: "secret",
+            },
+        )
+        assert await switch.login()
+        await switch.update_informations()
+        data = await switch.get_data()
+
+    assert switch.mac_address == "50:C7:BF:00:00:01"
+    data.pop(TIMESTAMP)
+    assert data == EXPECTED_PORTS

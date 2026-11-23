@@ -88,10 +88,20 @@ class EasySwitch:
         the credentials, e.g. the maximum number of sessions.
         """
         if self._session is None:
-            self._session = aiohttp.ClientSession()
+            # The switch is usually reached by its IP address, the cookies of
+            # which the default cookie jar refuses
+            self._session = aiohttp.ClientSession(
+                cookie_jar=aiohttp.CookieJar(unsafe=True)
+            )
             self._close_session = True
 
-        data = {"logon": "Login", "username": self._user, "password": self._password}
+        # The fields of the login form of the web interface
+        data = {
+            "username": self._user,
+            "password": self._password,
+            "cpassword": "",
+            "logon": "Login",
+        }
         headers = {"Referer": f"{self._url}/Logout.htm"}
 
         try:
